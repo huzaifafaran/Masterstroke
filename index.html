@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta
+            name="description"
+            content="Cricket Legends — A skill-based cricket video game featuring iconic players with unique signature abilities"
+        >
+        <title>Cricket Legends — The Ultimate Cricket Game</title>
+        <!-- Fonts (Poppins for Headers, Inter for Body) -->
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="styles.css">
+        <link
+            rel="icon"
+            href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>●</text></svg>"
+        >
+    </head>
+    <body>
+        <!-- ═══════ MAIN MENU ═══════ -->
+        <div id="menu-screen" class="screen active">
+            <div class="game-title">
+                <h1>CRICKET<br>LEGENDS</h1>
+                <div class="subtitle">Skill • Strategy • Signature Plays</div>
+            </div>
+
+            <div class="menu-buttons">
+                <button class="menu-btn" id="btn-quick-match">
+                    <span><span class="btn-icon"><span class="black-emoji">🏏</span></span> Quick Match</span>
+                </button>
+                <button class="menu-btn" id="btn-super-over">
+                    <span><span class="btn-icon"><span class="black-emoji">⚡</span></span> Super Over</span>
+                </button>
+                <button class="menu-btn" id="btn-duel-mode">
+                    <span><span class="btn-icon"><span class="black-emoji">⚔️</span></span> 2-Player Duel</span>
+                </button>
+            </div>
+
+            <div class="menu-version">v1.0 — 16 LEGENDARY PLAYERS</div>
+        </div>
+
+        <!-- ═══════ SETUP SCREEN ═══════ -->
+        <div id="setup-screen" class="screen">
+            <div class="setup-panel">
+                <h2><span class="black-emoji">⚙️</span> Match Setup</h2>
+
+                <div class="setup-field">
+                    <label>Your Team</label>
+                    <select id="sel-team1"></select>
+                </div>
+
+                <div class="setup-field">
+                    <label>Opponent Team</label>
+                    <select id="sel-team2"></select>
+                </div>
+
+                <div class="setup-field">
+                    <label>Overs</label>
+                    <select id="sel-overs"></select>
+                </div>
+
+                <div class="setup-field">
+                    <label>Pitch Conditions</label>
+                    <select id="sel-pitch"></select>
+                </div>
+
+                <div class="setup-field">
+                    <label>Difficulty</label>
+                    <select id="sel-difficulty">
+                        <option value="easy">Easy</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="hard">Hard</option>
+                    </select>
+                </div>
+
+                <div class="setup-actions">
+                    <button id="btn-back-menu">← Back</button>
+                    <button id="btn-start-match"><span class="black-emoji">🏏</span> Start Match</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════ GAME SCREEN ═══════ -->
+        <div id="game-screen" class="screen">
+            <div class="game-layout">
+                <!-- Scoreboard Bar -->
+                <div class="scoreboard-bar">
+                    <div style="display: flex; align-items: center; gap: 20px">
+                        <span class="innings-badge" id="innings-label"
+                        >1st Innings</span>
+                        <div class="score-main">
+                            <span class="runs" id="score-runs">0</span>
+                            <span class="separator">/</span>
+                            <span class="wickets" id="score-wickets">0</span>
+                        </div>
+                    </div>
+
+                    <div class="score-details">
+                        <div class="score-detail">
+                            <div class="label">Overs</div>
+                            <div class="value" id="score-overs">0.0</div>
+                        </div>
+                        <div class="score-detail">
+                            <div class="label">Run Rate</div>
+                            <div class="value" id="score-rr">0.00</div>
+                        </div>
+                    </div>
+
+                    <div id="target-info" class="hidden"></div>
+                </div>
+
+                <!-- Left Panel: Player Info -->
+                <div class="left-panel">
+                    <div class="player-card batter">
+                        <div class="name">
+                            <span class="black-emoji">🏏</span> <span id="batter-name">—</span>
+                        </div>
+                        <div class="stats" id="batter-stats">0 (0)</div>
+                        <div class="ability-badge" id="ability-status"></div>
+                    </div>
+
+                    <div class="player-card nonstriker">
+                        <div class="name">
+                            <span id="nonstriker-name">—</span>
+                        </div>
+                        <div class="stats" id="nonstriker-stats">0 (0)</div>
+                    </div>
+
+                    <div class="player-card bowler">
+                        <div class="name">
+                            <span class="black-emoji">🎯</span> <span id="bowler-name">—</span>
+                        </div>
+                        <div class="stats" id="bowler-stats">0-0 (0)</div>
+                    </div>
+
+                    <div class="last-balls-row" id="last-balls"></div>
+
+                    <div class="pressure-container">
+                        <div class="pressure-label">Match Pressure</div>
+                        <div class="pressure-track">
+                            <div id="pressure-bar"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Center: Canvas -->
+                <div class="center-panel">
+                    <canvas id="game-canvas"></canvas>
+                    <div
+                        class="timing-result"
+                        id="timing-result"
+                        style="opacity: 0"
+                    >
+                    </div>
+                    <div id="delivery-info"></div>
+
+                    <!-- Timing Bar Overlay -->
+                    <div id="timing-bar-overlay" class="timing-bar-overlay hidden">
+                        <div class="timing-bar-label">SELECT A SHOT FIRST</div>
+                        <div class="timing-bar-container">
+                            <div class="timing-zone timing-zone-early">EARLY</div>
+                            <div class="timing-zone timing-zone-perfect">PERFECT</div>
+                            <div class="timing-zone timing-zone-late">LATE</div>
+                            <div class="timing-bar-cursor" id="timing-bar-cursor"></div>
+                        </div>
+                        <button id="btn-play-shot" class="btn-play-shot"><span class="black-emoji">⚡</span> PLAY SHOT</button>
+                        <div class="timing-bar-hint">Press SPACE or click <span class="black-emoji">⚡</span> PLAY SHOT</div>
+                    </div>
+
+                    <!-- Bowling Speed Bar Overlay -->
+                    <div id="bowling-speed-overlay" class="timing-bar-overlay hidden">
+                        <div class="timing-bar-label">SET DELIVERY SPEED!</div>
+                        <div class="timing-bar-container bg-opacity-50">
+                            <div class="timing-zone timing-zone-late" style="flex: 0 0 20%; background: rgba(59, 130, 246, 0.2); color: var(--accent-blue); border-right: 1px solid rgba(59, 130, 246, 0.3);">SLOW</div>
+                            <div class="timing-zone timing-zone-perfect" style="flex: 0 0 50%; background: rgba(16, 185, 129, 0.2); color: #059669;">GOOD</div>
+                            <div class="timing-zone timing-zone-early" style="flex: 0 0 30%; background: rgba(249, 115, 22, 0.2); color: var(--accent-orange); border-left: 1px solid rgba(249, 115, 22, 0.3);">FAST / OVERPITCH</div>
+                            <div id="bowling-cursor" class="timing-bar-cursor"></div>
+                        </div>
+                        <button id="btn-bowl-action" class="btn-play-shot"><span class="black-emoji">⚡</span> RELEASE</button>
+                        <div class="timing-bar-hint">Press SPACE or click <span class="black-emoji">⚡</span> RELEASE</div>
+                    </div>
+                </div>
+
+                <!-- Right Panel: Commentary -->
+                <div class="right-panel">
+                    <div class="panel-title">Live Commentary</div>
+                    <div id="commentary-feed"></div>
+                </div>
+
+                <!-- Bottom Controls -->
+                <div class="controls-bar" id="batting-controls">
+                    <div id="shot-buttons"></div>
+                </div>
+
+                <div class="controls-bar hidden" id="bowling-controls">
+                    <div id="delivery-buttons"></div>
+                    <div style="text-align: center">
+                        <button id="btn-execute" class="hidden">
+                            <span class="black-emoji">⚡</span> Bowl Now!
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════ RESULT SCREEN ═══════ -->
+        <div id="result-screen" class="screen">
+            <div class="result-header">
+                <h2 id="result-winner">—</h2>
+                <div class="margin" id="result-margin">—</div>
+            </div>
+
+            <div class="scorecard-container" id="scorecard"></div>
+
+            <button id="btn-play-again"><span class="black-emoji">🏏</span> Play Again</button>
+        </div>
+
+        <!-- ═══════ SCRIPTS (order matters) ═══════ -->
+        <script src="js/players.js"></script>
+        <script src="js/renderer.js"></script>
+        <script src="js/sprites.js"></script>
+    <!-- Game Logic -->
+    <script src="js/engine.js"></script>
+    <script src="js/batting.js"></script>
+    <script src="js/bowling.js"></script>
+    <script src="js/commentary.js"></script>
+    
+    <!-- Controllers -->
+    <script src="js/controllers/AIController.js"></script>
+    <script src="js/controllers/DuelModeController.js"></script>
+    <script src="js/controllers/VsAIModeController.js"></script>
+    <script src="js/controllers/GameController.js"></script>
+    
+    <!-- Main App -->
+    <script src="https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/twemoji.min.js" crossorigin="anonymous"></script>
+    <script src="js/app.js"></script>
+
+        <!-- Toss Choice Modal -->
+        <div id="toss-overlay" class="hidden">
+            <div class="toss-modal">
+                <h2 id="toss-title">You won the toss!</h2>
+                <p>What would you like to do first?</p>
+                <div class="toss-btns">
+                    <button id="btn-toss-bat">
+                        <span>🏏</span> Bat First
+                    </button>
+                    <button id="btn-toss-bowl">
+                        <span>🎯</span> Bowl First
+                    </button>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
