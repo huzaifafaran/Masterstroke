@@ -73,20 +73,44 @@ A critical component. Slow balls/Doosras multiply their disguise strength direct
 
 The timing UI is a completely mathematically governed slider representing physical mechanics.
 
-### 5.1 Timing Zone Resizing (The Constraints)
+### 5.1 The Timing Layer (Window & Bar Speed)
 Timing bands (Perfect, Good, Early, Late) stretch or compress dynamically every single delivery.
-*   **Zone Squeezing:** 
-    * If `Delivery Threat > Batter Skill`, the "Perfect" and "Good" bands physically drop by factors of up to `-5.2%` total width, whilst expanding the 'mistime' outer edge bands.
-    * High match pressure brutally tightens the perfect window `PerfectWidth -= Pressure * 4.1`.
+*   **Timing Window Width:** The "Perfect" timing window is linearly scaled based on the batter's `Timing` attribute:
+    ```javascript
+    PerfectZone = (40 + (batter.timing * 0.6)) * scale;
+    ```
+    *(Scales: Easy: 1.3x, Medium: 1.0x, Hard: 0.7x. Result: A 100-timing player gets a 100ms window; a 0-timing player gets ~40ms).*
+*   **Timing Bar Speed:** The cursor speed is a summative evaluation of environmental and ball difficulty:
+    ```javascript
+    speed = 2.0 + (pace/100)*2.2 + (variation/100)*1.0 + difficulty*1.2 + 
+            pressure*0.75 + movement*0.45 + risk*0.9 + (1.05 - matchupScore)*0.7;
+    // Skill Reduction: Slows the bar down for better players
+    speed *= (1 - ((timing * 0.65 + footwork * 0.35) * 0.22));
+    ```
+*   **Zone Squeezing:** If `Delivery Threat > Batter Skill`, the "Perfect" and "Good" bands physically drop by factors of up to `-5.2%` total width. High match pressure brutally tightens the perfect window `PerfectWidth -= Pressure * 4.1`.
 
-### 5.2 Sweet Spot & Trajectory Physics Models
-When the cursor stops on a timing grade, the contact formula checks for a true result:
-*   **Contact Math:** `Probability of Sweet Spot = BaseProb + (BatterSkill * 0.30) - (ShotRisk * 0.14)`.
-*   **Exit Velocity:** `14 + PowerStat*12 + ShotPowerMult*8` meters per second. 
-*   **Flight & Bounce Matrix:**
-    *   `BallisticCarry = (exitVelocity^2 * sin(2*angle)) / 11.8`. 
-    *   `GroundRoll` is dependent on Pitch `outfield` modifiers. A lofted shot zeroes out GroundRoll logic.
-*   Hitting exactly "Perfect" disables purely fatal misfields unless the user attempted an incredibly foolish shot against a counter-delivery.
+### 5.2 Sweet Spot & Contact Probability
+When the cursor stops on a timing grade, the engine uses Bayesian-style probability shifting to determine if you hit the Sweet Spot or catch an Edge:
+*   **Contact Probability Rolls:** Base probabilities roll against Timing Grade (e.g., Perfect/Good):
+    ```javascript
+    probs.sweet += (skill - 0.56) * 0.30 + (matchupScore - 1) * 0.26 - risk * 0.14;
+    probs.edge  += (1 - matchupScore) * 0.26 + risk * 0.18 + threat * 0.17;
+    ```
+*   Hitting exactly "Perfect" mathematically disables purely fatal misfields unless the user attempted an incredibly foolish shot against a counter-delivery.
+
+### 5.3 Engine Trajectory Physics
+Upon resolving contact, the engine calculates true flight dynamics via ballistic physics mapping.
+*   **Exit Velocity Calculation:**
+    ```javascript
+    baseVelocity = 14 + (powerAttr/100)*12 + (shot.powerMult)*8;
+    exitVelocity = baseVelocity * contact.powerFactor * (0.85 + matchupScore * 0.20) * pitchCarry;
+    ```
+*   **Ballistic Carry & Distance Roll:** 
+    ```javascript
+    // 11.8: tuned gravity/drag constant ensuring distances feel "Cricket-legal" (60-100m)
+    ballisticCarry = (exitVelocity^2 * Math.sin(2 * elevationRad)) / 11.8;
+    groundRoll = (exitVelocity * Math.cos(elevationRad) - 7) * groundRollMod * outfieldSpeed;
+    ```
 
 ---
 
@@ -103,7 +127,11 @@ The ball's `Exit Velocity` and `Trajectory Elevation` are mapped against the `Fi
 ### 6.2 Dismissal Calculations (`resolveDismissal()`)
 *   **Bowled / LBW:** Occurs overwhelmingly on "Miss" or "Very Late/Early". Yorker boosts Bowled chance by +20%. Inswing boosts LBW chance by +18%.
 *   **Edge Catching:** Slip catch chances scale off `outside_off` delivery lines and the `offside` field density preset. Keeper catches scale heavily via `innerRing` field density and low elevations.
-*   **Aerial Catching:** If `elevation >= 16` and `distance > 18`, a Catch Roll occurs. A shot hit "Deep" (`distance > 42`) uses the `deep` field density variable (up to 0.90 in Death Overs), heavily punishing mistimed power shots with near 60% catch rates.
+*   **Aerial Catching:** If `elevation >= 16` and `distance > 18`, a Catch Roll occurs using field density mapping.
+    ```javascript
+    catchChance = 0.05 + density * (deep ? 0.22 : 0.18) + contactPenalty + riskPenalty - timingBonus;
+    ```
+    Shots hit "Deep" (`distance > 42`) use the `deep` field density variable (up to 0.90 density in Death Overs), heavily punishing mistimed power shots with near 60% catch rates. Conversely, a `timingBonus` for striking it *Perfect* reduces catch chance by up to 35%, simulating the batter "finding the gap."
 
 ---
 
@@ -145,10 +173,15 @@ Batsmen can access a massive library of 28 distinct shots.
 *   **Innovative / 360:** Scoop (Risk 0.55), Switch Hit (Risk 0.50), Reverse Sweep (0.40), Upper Cut (0.42), Reverse Lap (0.50), Dab (0.24).
 
 ### 8.2 The Shot Matchup Matrix (`SHOT_MATCHUP_PROFILES`)
-Whenever a shot is played, the game cross-references it against the Delivery. The resulting score modifies the Timing Bar width and edge chances!
-* **Pulling a Yorker:** Yields a length mismatch penalty of `0.22x` (devastating to your timing bar). Pulling a Bouncer is `1.45x`.
+Whenever a shot is played, the game cross-references it against the Delivery. The resulting score modifies the Timing Bar width, edge chances, and directly feeds into the contact formulas!
+*   **Matchup Calculation:**
+    ```javascript
+    score = 1.0 * lengthMod * lineMod * paceSpinMod * deliveryTypeMod;
+    score *= (1 - (movementSensitivity * ballMovement * 0.18));
+    ```
+* **Pulling a Yorker:** Yields a length mismatch penalty of `0.22x` (devastating to your timing metrics). Pulling a Bouncer is `1.45x`.
 * **Sweeping Pace vs Spin:** Sweeping yields `0.62x` vs Pace, but `1.22x` vs Spin.
-* **Scooping or Lapping:** Scooping a full delivery has a synergistic multiplier of `1.18x`, whereas scooping a bouncer crushes the bar size `0.35x`.
+* **Scooping or Lapping:** Scooping a full delivery has a synergistic multiplier of `1.18x`, whereas scooping a bouncer crushes the score `0.35x`.
 * **Cutting Line:** Cutting a ball on the stumps is `0.92x`, outside leg `0.65x`, but outside off provides `1.20x` synergy.
 
 ---
