@@ -33,6 +33,7 @@ class CricketLegendsApp {
         this.lastUrgentTacticalThoughtAt = 0;
         this.pendingAutoShotId = null;
         this.pendingAutoDeliveryId = null;
+        this.pendingControlsRetryTimer = null;
     }
 
     // ── Initialize ─────────────────────────────────────────
@@ -831,20 +832,50 @@ class CricketLegendsApp {
     }
 
     tryResolvePendingControls() {
-        if (this.animating) return;
+        if (this.animating) {
+            this.schedulePendingControlsRetry();
+            return;
+        }
 
         if (this.gamePhase === 'batting_human' && this.pendingAutoShotId) {
             const shotId = this.pendingAutoShotId;
-            this.pendingAutoShotId = null;
-            this.autoSelectShotWhenReady(shotId, 60);
+            this.autoSelectShotWhenReady(shotId, 9999);
+            if (!this.batting?.timingBarActive) {
+                this.schedulePendingControlsRetry();
+            } else {
+                this.pendingAutoShotId = null;
+                this.clearPendingControlsRetry();
+            }
             return;
         }
 
         if (this.gamePhase === 'bowling_human' && this.pendingAutoDeliveryId) {
             const deliveryId = this.pendingAutoDeliveryId;
-            this.pendingAutoDeliveryId = null;
-            this.autoSelectDeliveryWhenReady(deliveryId, 60);
+            this.autoSelectDeliveryWhenReady(deliveryId, 9999);
+            if (!this.bowling?.executionMeterActive) {
+                this.schedulePendingControlsRetry();
+            } else {
+                this.pendingAutoDeliveryId = null;
+                this.clearPendingControlsRetry();
+            }
+            return;
         }
+
+        this.clearPendingControlsRetry();
+    }
+
+    schedulePendingControlsRetry() {
+        if (this.pendingControlsRetryTimer) return;
+        this.pendingControlsRetryTimer = setTimeout(() => {
+            this.pendingControlsRetryTimer = null;
+            this.tryResolvePendingControls();
+        }, 120);
+    }
+
+    clearPendingControlsRetry() {
+        if (!this.pendingControlsRetryTimer) return;
+        clearTimeout(this.pendingControlsRetryTimer);
+        this.pendingControlsRetryTimer = null;
     }
 
     getAvailableShotsForCurrentBatter() {

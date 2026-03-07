@@ -26,6 +26,8 @@ class TacticalBrainClient {
             batting: this._freshSideState(),
             bowling: this._freshSideState(),
         };
+        this._lastSeenInnings = 1;
+        this._inningsArchive = {};
 
         // Shared over-log: one entry per completed over
         // { over, runs, wickets, boundaries, dots, wides, noballs, outcomes[], planIntent, planWorked }
@@ -162,6 +164,8 @@ class TacticalBrainClient {
         if (!this.isEnabled()) return null;
         this.logStatusOnce();
 
+        this._captureCompletedInningsSnapshot(payload);
+
         const s           = this._state[planType];
         const currentBall = this._extractBallNumber(payload);
         const currentOver = Number(payload?.over ?? payload?.match?.over ?? 1);
@@ -193,6 +197,21 @@ class TacticalBrainClient {
         s.planGenCount++;
 
         return plan;
+    }
+
+    _captureCompletedInningsSnapshot(payload) {
+        const innings = Number(payload?.innings ?? payload?.match?.innings ?? 1);
+        if (!Number.isFinite(innings)) return;
+
+        if (innings !== this._lastSeenInnings && innings === 2 && !this._inningsArchive[1]) {
+            this._inningsArchive[1] = {
+                totalRuns: Math.max(0, Number(payload?.target ?? payload?.match?.target ?? 1) - 1),
+                overs: this._overHistory.map((o) => ({ ...o })),
+                summary: this._buildMatchReadContext('batting')
+            };
+        }
+
+        this._lastSeenInnings = innings;
     }
 
     // ─────────────────────────────────────────────
@@ -419,6 +438,8 @@ class TacticalBrainClient {
         const planEffect     = memoryState.planEffectiveness;
         const overHistory    = this._buildOverHistorySummary(planType);
         const matchRead      = this._buildMatchReadContext(planType);
+        const innings = Number(payload?.innings ?? payload?.match?.innings ?? 1);
+        const archivedFirstInnings = innings === 2 ? this._inningsArchive[1] || null : null;
 
         const effectivenessNote = planEffect === 'worked'
             ? 'Your last plan worked well — build on it or subtly evolve it.'
@@ -427,26 +448,91 @@ class TacticalBrainClient {
             : planEffect === 'mixed'
             ? 'Mixed results last over — not a disaster but not ideal. Refine, don\'t overhaul.'
             : null;
+        const lastOverSummary = matchRead && typeof matchRead === 'object' && matchRead.lastOver
+            ? {
+                over: matchRead.lastOver.over,
+                runs: matchRead.lastOver.runs,
+                wickets: matchRead.lastOver.wickets,
+                boundaries: matchRead.lastOver.boundaries,
+                dots: matchRead.lastOver.dots,
+                runRate: matchRead.lastOver.runRate,
+                planIntent: matchRead.lastOver.planIntent,
+                planResult: matchRead.lastOver.planResult
+            }
+            : null;
 
         const sharedContext = {
             innings: payload?.innings ?? payload?.match?.innings ?? null,
+            formatOvers: payload?.formatOvers ?? payload?.match?.formatOvers ?? payload?.totalOvers ?? payload?.match?.totalOvers ?? null,
             currentOver,
             ball: payload?.ball ?? payload?.match?.ball,
             ballsRemaining: phase.ballsLeft,
             matchPhase: phase.label,
             score: payload?.score ?? payload?.match?.score,
             target: payload?.target ?? payload?.match?.target ?? null,
+            runsNeeded: payload?.runsNeeded ?? payload?.match?.runsNeeded ?? null,
             chaseContext: (payload?.innings ?? payload?.match?.innings) === 2
-                ? `Second innings chase/defence context. Target is ${payload?.target ?? payload?.match?.target ?? 'unknown'}.`
+                ? `Second innings chase/defence context. Target is ${payload?.target ?? payload?.match?.target ?? 'unknown'} and runs still needed are ${payload?.runsNeeded ?? payload?.match?.runsNeeded ?? 'unknown'}.`
                 : `First innings target-setting context. Current projected task is to build a defendable total.`,
             wicketsInHand: payload?.wicketsLeft ?? payload?.match?.wicketsLeft,
             requiredRunRate: this._safeRRR(payload),
             currentRunRate: this._safeCRR(payload),
             pressureIndex: Math.round(pressure * 100) / 100,
             momentum,
+            lastOverSummary,
             recentBalls: recentOutcomes.slice(-6),
             pitchConditions: payload?.pitch ?? payload?.match?.pitch ?? null,
             dew: payload?.dew ?? payload?.match?.dew ?? false,
+            firstInningsSummary: archivedFirstInnings ? {
+                totalRuns: archivedFirstInnings.totalRuns,
+                oversBowled: archivedFirstInnings.overs?.length || 0,
+                summary: archivedFirstInnings.summary,
+                overByOver: archivedFirstInnings.overs?.map((o) => ({
+                    over: o.over,
+                    runs: o.runs,
+                    wickets: o.wickets,
+                    boundaries: o.boundaries,
+                    dots: o.dots
+                })) || []
+            } : null,
+        };
+        const explicitOverContext = {
+            instruction: 'Read these numbers literally on every call.',
+            matchOvers: payload?.formatOvers ?? payload?.match?.formatOvers ?? payload?.totalOvers ?? payload?.match?.totalOvers ?? null,
+            currentOver,
+            ballsRemaining: phase.ballsLeft,
+            runsNeeded: payload?.runsNeeded ?? payload?.match?.runsNeeded ?? null,
+            reminder: `This match is ${payload?.formatOvers ?? payload?.match?.formatOvers ?? payload?.totalOvers ?? payload?.match?.totalOvers ?? 'unknown'} overs long, the current over is ${currentOver}, and the batting side currently needs ${payload?.runsNeeded ?? payload?.match?.runsNeeded ?? 'unknown'} runs.`
+        };
+        const fullMatchContextSnapshot = {
+            instruction: 'This is the full context snapshot for this over. Use all of it before making the plan.',
+            innings: payload?.innings ?? payload?.match?.innings ?? null,
+            target: payload?.target ?? payload?.match?.target ?? null,
+            runsNeeded: payload?.runsNeeded ?? payload?.match?.runsNeeded ?? null,
+            totalOvers: payload?.formatOvers ?? payload?.match?.formatOvers ?? payload?.totalOvers ?? payload?.match?.totalOvers ?? null,
+            currentOver,
+            ballsRemaining: phase.ballsLeft,
+            score: payload?.scoreText ?? payload?.score ?? payload?.match?.scoreText ?? payload?.match?.score ?? null,
+            runsNow: payload?.runs ?? payload?.match?.runs ?? null,
+            wicketsNow: payload?.wickets ?? payload?.match?.wickets ?? null,
+            wicketsInHand: payload?.wicketsInHand ?? payload?.wicketsLeft ?? payload?.match?.wicketsInHand ?? payload?.match?.wicketsLeft ?? null,
+            runRate: payload?.runRate ?? payload?.match?.runRate ?? null,
+            requiredRunRate: this._safeRRR(payload),
+            pressure: Math.round(pressure * 100) / 100,
+            momentum,
+            lastOverSummary,
+            firstInningsSummary: archivedFirstInnings ? {
+                totalRuns: archivedFirstInnings.totalRuns,
+                summary: archivedFirstInnings.summary,
+                overByOver: archivedFirstInnings.overs?.map((o) => ({
+                    over: o.over,
+                    runs: o.runs,
+                    wickets: o.wickets,
+                    boundaries: o.boundaries,
+                    dots: o.dots
+                })) || []
+            } : null,
+            recentBalls: recentOutcomes.slice(-6)
         };
 
         if (planType === 'batting') {
@@ -471,6 +557,8 @@ class TacticalBrainClient {
                 situationalNuance: this._buildBattingSituationalNuance(pressure, phase, momentum, memoryState),
 
                 matchContext: sharedContext,
+                explicitOverContext,
+                fullMatchContextSnapshot,
 
                 formatAwareness: {
                     instruction: 'Read the format literally and plan off the exact innings length, not default T20 pacing.',
@@ -486,10 +574,11 @@ class TacticalBrainClient {
                     ? {
                         instruction: 'You are batting second. The target is not abstract; it is the scoreboard you must chase right now.',
                         targetToChase: payload?.target ?? null,
+                        runsStillNeeded: payload?.runsNeeded ?? null,
                         scoreNow: payload?.score ?? null,
                         ballsRemaining: phase.ballsLeft,
                         requiredRunRate: this._safeRRR(payload),
-                        reminder: 'When batting second, always speak and plan against the exact target.'
+                        reminder: 'When batting second, always speak and plan against the exact remaining runs needed, not just the original target, and remember what happened in the full first innings.'
                     }
                     : {
                         instruction: 'You are batting first. You are creating the target the opponent must chase.',
@@ -543,7 +632,7 @@ class TacticalBrainClient {
                         avoidShots:  'array of shot ids from allowedShots to consciously suppress',
                         targetZones: 'array of up to 3 field zone strings',
                         narrative:   'one short human sentence explaining the tactical idea in live-match language, not analyst language',
-                        read:        'one or two natural, conversational sentences in first person as a competitive cricket mind living this game in real time. React emotionally but plausibly to what just happened: regret bad calls, enjoy plans that work, acknowledge pressure, threaten a pivot, or stay calm when in control. Be invested in beating the opponent. Respect the exact match length. In a 5-over game, do not call over 3 early and do not suggest passive strike rotation unless the batting side is already clearly ahead. No robotic labels, no bullet points, no JSON-like phrasing.',
+                        read:        'one or two natural, conversational sentences in first person as a competitive cricket mind living this game in real time. React emotionally but plausibly to what just happened: regret bad calls, enjoy plans that work, acknowledge pressure, threaten a pivot, or stay calm when in control. Be invested in beating the opponent. When discussing a chase, refer to runs still needed, not the original target total, unless both are useful. Respect the exact match length. In a 5-over game, do not call over 3 early and do not suggest passive strike rotation unless the batting side is already clearly ahead. No robotic labels, no bullet points, no JSON-like phrasing.',
                     }
                 }
             });
@@ -570,6 +659,8 @@ class TacticalBrainClient {
             situationalNuance: this._buildBowlingSituationalNuance(pressure, phase, momentum, memoryState),
 
             matchContext: sharedContext,
+            explicitOverContext,
+            fullMatchContextSnapshot,
 
                 formatAwareness: {
                     instruction: 'Read the format literally and plan off the exact innings length, not default T20 pacing.',
@@ -585,10 +676,11 @@ class TacticalBrainClient {
                 ? {
                     instruction: 'You are bowling in the chase. You are defending a target your side already posted.',
                     targetToDefend: payload?.target ?? null,
+                    runsStillNeededByBattingSide: payload?.runsNeeded ?? null,
                     scoreNow: payload?.score ?? null,
                     ballsRemaining: phase.ballsLeft,
                     requiredRunRate: this._safeRRR(payload),
-                    reminder: 'Always plan with the exact target in mind. Know what you are defending.'
+                    reminder: 'Always plan with both the original target and the exact runs still needed right now. When you describe the chase state, talk about remaining runs needed, not just the full target.'
                 }
                 : {
                     instruction: 'You are bowling in the first innings. You are shaping what target the batting side can set.',
@@ -634,7 +726,7 @@ class TacticalBrainClient {
                     avoidDeliveries:  'array of delivery ids from allowedDeliveries to suppress',
                     attackZones:      'array of up to 3 pitch/field zones to target',
                     narrative:        'one short human sentence explaining the tactical idea in live-match language, not analyst language',
-                    read:             'one or two natural, conversational sentences in first person as a competitive cricket mind living this game in real time. React emotionally but plausibly to what just happened: enjoy pressure, regret being hit, feel a wicket opening, acknowledge when a plan got exposed, and state whether you are doubling down or pivoting. Be invested in beating the opponent. Respect the exact match length. In a 5-over game, do not call over 3 early and do not suggest passive strike rotation unless the batting side is already clearly ahead. No robotic labels, no bullet points, no JSON-like phrasing.',
+                    read:             'one or two natural, conversational sentences in first person as a competitive cricket mind living this game in real time. React emotionally but plausibly to what just happened: enjoy pressure, regret being hit, feel a wicket opening, acknowledge when a plan got exposed, and state whether you are doubling down or pivoting. Be invested in beating the opponent. When discussing a chase, refer to runs still needed right now, not just the original target total, unless both are useful. Respect the exact match length. In a 5-over game, do not call over 3 early and do not suggest passive strike rotation unless the batting side is already clearly ahead. No robotic labels, no bullet points, no JSON-like phrasing.',
                 }
             }
         });
@@ -910,6 +1002,7 @@ class TacticalBrainClient {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { TacticalBrainClient };
 }
+
 
 
 
