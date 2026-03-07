@@ -94,11 +94,13 @@
             <div id="rotate-hint" class="rotate-hint">
                 Rotate to landscape for best gameplay experience.
             </div>
+            <!--
             <div id="debug-overlay" class="debug-overlay">
                 <div class="debug-title">DEBUG MODE</div>
                 <div id="debug-state" class="debug-state">state: -</div>
                 <div id="debug-log" class="debug-log"></div>
             </div>
+            -->
             <div class="game-layout">
                 <!-- Scoreboard Bar -->
                 <div class="scoreboard-bar">
@@ -272,7 +274,18 @@
     <script src="js/bowling.js"></script>
     <script src="js/commentary.js"></script>
     
+    <!-- Optional LLM Tactical Brain Config -->
+    <script>
+        window.GAME_LLM_CONFIG = {
+            enabled: true,
+            endpoint: 'http://localhost:8787/api/tactical-plan',
+            model: 'gpt-4o-mini',
+            timeoutMs: 5000
+        };
+    </script>
+
     <!-- Controllers -->
+    <script src="js/controllers/TacticalBrainClient.js"></script>
     <script src="js/controllers/AIController.js"></script>
     <script src="js/controllers/DuelModeController.js"></script>
     <script src="js/controllers/VsAIModeController.js"></script>

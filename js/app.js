@@ -26,8 +26,13 @@ class CricketLegendsApp {
         this.lastTimingZones = null;
         this.team1BattingOrder = [];
         this.team1BowlingRotation = [];
-        this.debugMode = true;
+        // this.debugMode = true;
+        this.debugMode = false;
         this.debugLogBuffer = [];
+        this.lastTacticalThoughtAt = 0;
+        this.lastUrgentTacticalThoughtAt = 0;
+        this.pendingAutoShotId = null;
+        this.pendingAutoDeliveryId = null;
     }
 
     // ── Initialize ─────────────────────────────────────────
@@ -359,6 +364,19 @@ class CricketLegendsApp {
         this.bowling = new BowlingSystem(this.engine);
         this.commentary = new CommentarySystem();
         this.gameController = new GameController(this.engine, this.batting, this.bowling, this.commentary);
+        if (this.gameController?.ai) {
+            this.gameController.ai.onTacticalThought = (evt) => {
+                const now = Date.now();
+                if (evt?.urgent) {
+                    if (now - this.lastUrgentTacticalThoughtAt < 6000) return;
+                    this.lastUrgentTacticalThoughtAt = now;
+                } else if (now - this.lastTacticalThoughtAt < 18000) {
+                    return;
+                }
+                this.lastTacticalThoughtAt = now;
+                this.addCommentary(evt?.text || '🧠 Tactical update.', 'over');
+            };
+        }
 
         this.renderer = new GameRenderer('game-canvas');
         this.sprites = new SpriteOverlay();
@@ -384,9 +402,13 @@ class CricketLegendsApp {
             this.hideTimingBar();
             this.bindBattingInput();
             
-            const autoShot = this.lastPlayedShot || SHOT_TYPES.find(s => s.id === 'drive');
+            const availableShots = this.getAvailableShotsForCurrentBatter();
+            const autoShot = availableShots.find((s) => s.id === this.lastPlayedShot?.id) ||
+                availableShots.find((s) => s.id === 'drive') ||
+                availableShots[0];
             if (autoShot) {
-                setTimeout(() => this.selectShot(autoShot), 50);
+                this.pendingAutoShotId = autoShot.id;
+                this.tryResolvePendingControls();
             }
             this.appendDebugLog('ballReadyHumanBatting', `delivery=${data.deliveryResult?.delivery?.id || data.deliveryResult?.deliveryType || 'unknown'}`);
             this.updateDebugState('ballReadyHumanBatting');
@@ -398,7 +420,8 @@ class CricketLegendsApp {
             
             const autoDelivery = this.lastBowledDeliveryId || this.bowling.getAvailableDeliveries()[0].id;
             if (autoDelivery) {
-                setTimeout(() => this.selectAndBowl(autoDelivery), 50);
+                this.pendingAutoDeliveryId = autoDelivery;
+                this.tryResolvePendingControls();
             }
             this.appendDebugLog('ballReadyHumanBowling', `batter=${data.batter?.name || '-'} bowler=${data.bowler?.name || '-'}`);
             this.updateDebugState('ballReadyHumanBowling');
@@ -416,6 +439,8 @@ class CricketLegendsApp {
 
         this.gameController.on('ballComplete', (data) => {
             const outcome = data.outcome;
+            // Add ball commentary immediately so it always appears before any over-end entry.
+            this.addCommentary(data.commentary, outcome.wicket ? 'wicket' : outcome.six ? 'six' : outcome.boundary ? 'four' : 'normal');
             this.renderer.animateBall(outcome, () => {
                 if (outcome.wicket) this.renderer.wicketEffect();
                 if (outcome.six) this.renderer.boundaryEffect(true);
@@ -424,14 +449,13 @@ class CricketLegendsApp {
                 const spriteDuration = outcome.wicket ? 2200 : outcome.six ? 2000 : outcome.boundary ? 1600 : 1000;
                 this.sprites.show(outcome, spriteDuration);
 
-                this.addCommentary(data.commentary, outcome.wicket ? 'wicket' : outcome.six ? 'six' : outcome.boundary ? 'four' : 'normal');
-
                 this.updateScoreboard();
                 this.updatePlayerInfo();
                 this.showTimingResult(outcome.timingDetail || outcome.timing, outcome.timingPosition, outcome.timingZones);
 
                 setTimeout(() => {
                     this.animating = false;
+                    this.tryResolvePendingControls();
                 }, spriteDuration);
             });
             this.appendDebugLog('ballComplete', `runs=${outcome?.runs} wicket=${!!outcome?.wicket}`);
@@ -600,7 +624,8 @@ class CricketLegendsApp {
         if (!shotBtns) return;
 
         shotBtns.innerHTML = '';
-        SHOT_TYPES.forEach(shot => {
+        const availableShots = this.getAvailableShotsForCurrentBatter();
+        availableShots.forEach(shot => {
             const btn = document.createElement('button');
             btn.className = 'shot-btn';
             btn.innerHTML = `<span class="shot-name">${shot.name}</span>`;
@@ -618,7 +643,7 @@ class CricketLegendsApp {
             if (this.animating) return;
 
             // Number keys = select shot
-            const shot = SHOT_TYPES.find(s => s.key === e.key);
+            const shot = this.getAvailableShotsForCurrentBatter().find(s => s.key === e.key);
             if (shot && !this.batting.timingBarActive) {
                 this.selectShot(shot);
                 return;
@@ -655,6 +680,7 @@ class CricketLegendsApp {
         }
 
         this.selectedShotForBall = shot;
+        this.lastPlayedShot = shot;
 
         // Highlight selected button
         document.querySelectorAll('.shot-btn').forEach(btn => {
@@ -700,12 +726,15 @@ class CricketLegendsApp {
 
     playShot(shotId) {
         if (this.animating || !this.batting.timingBarActive) return;
+        const availableShots = this.getAvailableShotsForCurrentBatter();
+        const selected = availableShots.find((s) => s.id === shotId);
+        if (!selected) return;
         this.lastTimingLockPosition = this.batting.timingBarPosition;
         this.lastTimingZones = this.batting.timingZones;
         this.animating = true;
         this.hideTimingBar();
 
-        this.lastPlayedShot = SHOT_TYPES.find(s => s.id === shotId) || this.lastPlayedShot;
+        this.lastPlayedShot = selected;
         const aimAngle = Math.random() * 360; 
         
         // Delegate executing shot, resolving AI bowling, and animating bounds to GameController
@@ -742,6 +771,7 @@ class CricketLegendsApp {
         }
 
         this.bowling.selectDelivery(deliveryId);
+        this.lastBowledDeliveryId = deliveryId;
 
         // Highlight selected button
         document.querySelectorAll('.delivery-btn').forEach(btn => {
@@ -772,6 +802,58 @@ class CricketLegendsApp {
 
         document.addEventListener('keydown', this.currentExecHandler);
         document.getElementById('btn-bowl-action')?.addEventListener('click', this.currentExecHandler);
+    }
+
+    autoSelectShotWhenReady(shot, retries = 20) {
+        const availableShots = this.getAvailableShotsForCurrentBatter();
+        const targetShot = (shot && shot.id)
+            ? availableShots.find((s) => s.id === shot.id)
+            : availableShots.find((s) => s.id === shot) || availableShots.find((s) => s.id === this.lastPlayedShot?.id) || availableShots.find((s) => s.id === 'drive') || availableShots[0];
+        if (!targetShot) return;
+        if (!this.animating) {
+            this.selectShot(targetShot);
+            return;
+        }
+        if (retries <= 0) return;
+        setTimeout(() => this.autoSelectShotWhenReady(targetShot, retries - 1), 80);
+    }
+
+    autoSelectDeliveryWhenReady(deliveryId, retries = 20) {
+        const deliveries = this.bowling?.getAvailableDeliveries?.() || [];
+        const resolvedId = deliveryId || this.lastBowledDeliveryId || deliveries[0]?.id;
+        if (!resolvedId) return;
+        if (!this.animating) {
+            this.selectAndBowl(resolvedId);
+            return;
+        }
+        if (retries <= 0) return;
+        setTimeout(() => this.autoSelectDeliveryWhenReady(resolvedId, retries - 1), 80);
+    }
+
+    tryResolvePendingControls() {
+        if (this.animating) return;
+
+        if (this.gamePhase === 'batting_human' && this.pendingAutoShotId) {
+            const shotId = this.pendingAutoShotId;
+            this.pendingAutoShotId = null;
+            this.autoSelectShotWhenReady(shotId, 60);
+            return;
+        }
+
+        if (this.gamePhase === 'bowling_human' && this.pendingAutoDeliveryId) {
+            const deliveryId = this.pendingAutoDeliveryId;
+            this.pendingAutoDeliveryId = null;
+            this.autoSelectDeliveryWhenReady(deliveryId, 60);
+        }
+    }
+
+    getAvailableShotsForCurrentBatter() {
+        const batter = this.engine?.getCurrentBatter?.();
+        if (typeof getShotsForBatter === 'function') {
+            const shots = getShotsForBatter(batter);
+            if (Array.isArray(shots) && shots.length > 0) return shots;
+        }
+        return SHOT_TYPES.filter((s) => ['defensive', 'drive', 'lofted'].includes(s.id));
     }
 
     executeBowl() {
@@ -873,7 +955,7 @@ class CricketLegendsApp {
         }
     }
 
-    addCommentary(text, type = 'normal') {
+    addCommentary(text, type = 'normal', options = {}) {
         const feed = document.getElementById('commentary-feed');
         if (!feed) return;
 
@@ -882,7 +964,11 @@ class CricketLegendsApp {
         entry.innerHTML = this.wrapEmojis(text);
         this.renderEmojis(entry);
 
-        feed.insertBefore(entry, feed.firstChild);
+        if (options.insertAfterFirst && feed.firstChild) {
+            feed.insertBefore(entry, feed.firstChild.nextSibling);
+        } else {
+            feed.insertBefore(entry, feed.firstChild);
+        }
         if (feed.children.length > 20) feed.removeChild(feed.lastChild);
 
         entry.style.opacity = '0';
@@ -1011,17 +1097,23 @@ class CricketLegendsApp {
             context.runsThisOver = data.overRuns; // Inject runs for the over
             const endObj = this.commentary.endOfOverLine(context, bowlerObj);
             if (endObj && endObj.lines) {
-                this.addCommentary(endObj.lines.join(' '), 'over');
+                setTimeout(() => {
+                    this.addCommentary(endObj.lines.join(' '), 'over');
+                }, 0);
                 return;
             }
         }
         
         // Fallback
-        this.addCommentary(`📋 End of over ${data.over}: ${data.bowler} | ${data.overRuns} runs | Score: ${data.score}`, 'over');
+        setTimeout(() => {
+            this.addCommentary(`📋 End of over ${data.over}: ${data.bowler} | ${data.overRuns} runs | Score: ${data.score}`, 'over');
+        }, 0);
     }
 
     onInningsEnd(data) {
-        this.addCommentary(`End of ${data.innings === 1 ? '1st' : '2nd'} innings: ${data.total}/${data.wickets} (${data.overs})`, 'innings');
+        setTimeout(() => {
+            this.addCommentary(`End of ${data.innings === 1 ? '1st' : '2nd'} innings: ${data.total}/${data.wickets} (${data.overs})`, 'innings');
+        }, 0);
         this.appendDebugLog('onInningsEnd', `innings=${data.innings} total=${data.total}/${data.wickets}`);
         this.updateDebugState('onInningsEnd');
 

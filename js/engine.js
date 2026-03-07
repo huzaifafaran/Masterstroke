@@ -550,6 +550,7 @@ class MatchEngine {
 
         if (runs % 2 === 1) this.rotateStrike();
 
+        let overEndPayload = null;
         if (this.state.balls % 6 === 0 && this.state.balls > 0) {
             if (bowlerStats && bowlerStats.currentOverRuns === 0) bowlerStats.maidens++;
             if (bowlerStats) bowlerStats.currentOverRuns = 0;
@@ -564,12 +565,12 @@ class MatchEngine {
             this.rotateBowler();
             this.drainBowlerStamina(bowler);
 
-            this.emit('overEnd', {
+            overEndPayload = {
                 over: this.state.currentOver,
                 bowler: bowler.name,
                 overRuns: this.state.recentOvers[this.state.recentOvers.length - 1]?.runs || 0,
                 score: `${this.state.runs}/${this.state.wickets}`
-            });
+            };
         }
 
         this.emit('ballComplete', {
@@ -579,6 +580,10 @@ class MatchEngine {
             score: `${this.state.runs}/${this.state.wickets}`,
             overs: `${Math.floor(this.state.balls / 6)}.${this.state.balls % 6}`
         });
+
+        if (overEndPayload) {
+            this.emit('overEnd', overEndPayload);
+        }
 
         if (this.isInningsOver()) {
             this.endInnings();

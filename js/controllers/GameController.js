@@ -74,13 +74,17 @@ class GameController {
     }
 
     // ── Core Gameplay Loop ──────────────────────────────────
-    prepareNextBall() {
+    async prepareNextBall() {
         if (this.engine.isMatchOver || this.engine.isInningsOver()) return;
 
         this.pendingDelivery = null;
         const context = this.engine.getMatchContext();
         const batter = this.engine.getCurrentBatter();
         const bowler = this.engine.getCurrentBowler();
+
+        if (this.ai && typeof this.ai.ensureOverPlanReady === 'function') {
+            await this.ai.ensureOverPlanReady(context, this.phase);
+        }
 
         if (this.phase === 'batting_human') {
             // AI Bowls
@@ -165,11 +169,19 @@ class GameController {
 
         // Process engine
         this.engine.processBall(outcome);
+        const postBallContext = this.engine.getMatchContext();
+        if (this.ai && typeof this.ai.onBallResolved === 'function') {
+            this.ai.onBallResolved(outcome, postBallContext, {
+                phase: this.phase,
+                humanRole: this.currentModeCtrl?.humanRole || null,
+                mode: this.currentMode
+            });
+        }
 
         // Generate Commentary
         const comm = this.commentary.generate(
             outcome,
-            this.engine.getMatchContext(),
+            postBallContext,
             batter,
             bowler
         );

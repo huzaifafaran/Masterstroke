@@ -46,6 +46,22 @@ const PLAYERS = [
         bowling: { paceOrSpin: 45, accuracy: 40, swingOrTurn: 30, variation: 20, control: 45 },
         fielding: { catching: 75, throwPower: 70, throwAccuracy: 72, agility: 80 },
         physical: { stamina: 92, consistency: 95, matchAwareness: 94 },
+        identity: {
+            orthodoxControl: 96, aerialPower: 64, improvisation: 58, strikeRotation: 97,
+            yorkerPunish: 62, shortBallPunish: 72, spinRead: 92, paceRead: 90,
+            deathComposure: 97, gapManipulation: 95, legSideWhip: 76, offSidePrecision: 97
+        },
+        conversionProfile: {
+            orthodoxBoundaryBias: 1.10, loftedSixBias: 0.86, aerialCatchSuppression: 1.08, gapTwoBias: 1.18,
+            yorkerPunishBias: 0.96, shortBallPunishBias: 1.05, misHitSurvivalBias: 1.08, edgeToFourBias: 1.04
+        },
+        signatureMatrix: {
+            drive: {
+                full: { cleanAdd: 0.05, sweetAdd: 0.03, matchupMult: 1.06 },
+                outside_off: { cleanAdd: 0.03, matchupMult: 1.03 }
+            },
+            chase: { cleanAdd: 0.03, sweetAdd: 0.02, matchupMult: 1.04 }
+        },
         signature: createAbility(
             'Chase Master', ABILITY_TRIGGERS.SITUATIONAL,
             'Timing +20%, Composure +25 when chasing and RRR > 6.0',
@@ -64,6 +80,22 @@ const PLAYERS = [
         bowling: { paceOrSpin: 50, accuracy: 55, swingOrTurn: 40, variation: 35, control: 50 },
         fielding: { catching: 70, throwPower: 65, throwAccuracy: 68, agility: 72 },
         physical: { stamina: 88, consistency: 98, matchAwareness: 96 },
+        identity: {
+            orthodoxControl: 98, aerialPower: 68, improvisation: 52, strikeRotation: 92,
+            yorkerPunish: 64, shortBallPunish: 70, spinRead: 95, paceRead: 91,
+            deathComposure: 92, gapManipulation: 94, legSideWhip: 74, offSidePrecision: 98
+        },
+        conversionProfile: {
+            orthodoxBoundaryBias: 1.14, loftedSixBias: 0.84, aerialCatchSuppression: 1.06, gapTwoBias: 1.12,
+            yorkerPunishBias: 0.95, shortBallPunishBias: 1.04, misHitSurvivalBias: 1.06, edgeToFourBias: 1.03
+        },
+        signatureMatrix: {
+            drive: {
+                full: { cleanAdd: 0.06, sweetAdd: 0.02, matchupMult: 1.07 },
+                full_driving: { cleanAdd: 0.07, sweetAdd: 0.03, matchupMult: 1.08 }
+            },
+            cut: { short: { cleanAdd: 0.03, matchupMult: 1.04 } }
+        },
         signature: createAbility(
             'Master Blaster Legacy', ABILITY_TRIGGERS.PASSIVE,
             'Consistency floor 95. +10 Timing on difficult pitches.',
@@ -82,6 +114,24 @@ const PLAYERS = [
         bowling: { paceOrSpin: 20, accuracy: 20, swingOrTurn: 10, variation: 10, control: 20 },
         fielding: { catching: 90, throwPower: 78, throwAccuracy: 80, agility: 92 },
         physical: { stamina: 90, consistency: 88, matchAwareness: 90 },
+        identity: {
+            orthodoxControl: 88, aerialPower: 86, improvisation: 99, strikeRotation: 86,
+            yorkerPunish: 74, shortBallPunish: 78, spinRead: 87, paceRead: 90,
+            deathComposure: 89, gapManipulation: 92, legSideWhip: 84, offSidePrecision: 90
+        },
+        conversionProfile: {
+            orthodoxBoundaryBias: 1.02, loftedSixBias: 1.10, aerialCatchSuppression: 1.14, gapTwoBias: 1.04,
+            yorkerPunishBias: 1.05, shortBallPunishBias: 1.06, misHitSurvivalBias: 1.12, edgeToFourBias: 1.06
+        },
+        signatureMatrix: {
+            scoop: {
+                yorker: { cleanAdd: 0.05, sweetAdd: 0.03, edgeAdd: -0.02, matchupMult: 1.06 }
+            },
+            switch_hit: {
+                spin: { cleanAdd: 0.4, sweetAdd: 0.3, matchupMult: 1.05 }
+            },
+            chase: { cleanAdd: 0.02, sweetAdd: 0.02, matchupMult: 1.02 }
+        },
         signature: createAbility(
             '360° Mastery', ABILITY_TRIGGERS.PASSIVE,
             'Unlock 8 extra shot angles. Innovative shot mistiming -80%.',
@@ -100,6 +150,22 @@ const PLAYERS = [
         bowling: { paceOrSpin: 50, accuracy: 45, swingOrTurn: 35, variation: 30, control: 42 },
         fielding: { catching: 60, throwPower: 65, throwAccuracy: 60, agility: 55 },
         physical: { stamina: 78, consistency: 72, matchAwareness: 75 },
+        identity: {
+            orthodoxControl: 70, aerialPower: 99, improvisation: 58, strikeRotation: 62,
+            yorkerPunish: 66, shortBallPunish: 84, spinRead: 76, paceRead: 80,
+            deathComposure: 82, gapManipulation: 68, legSideWhip: 96, offSidePrecision: 74
+        },
+        conversionProfile: {
+            orthodoxBoundaryBias: 0.96, loftedSixBias: 1.20, aerialCatchSuppression: 1.04, gapTwoBias: 0.90,
+            yorkerPunishBias: 1.02, shortBallPunishBias: 1.12, misHitSurvivalBias: 0.98, edgeToFourBias: 1.00
+        },
+        signatureMatrix: {
+            lofted: {
+                short: { sweetAdd: 0.05, cleanAdd: 0.03, matchupMult: 1.08 },
+                full: { sweetAdd: 0.03, matchupMult: 1.04 }
+            },
+            pull: { short: { sweetAdd: 0.04, matchupMult: 1.06 } }
+        },
         signature: createAbility(
             'Universe Boss', ABILITY_TRIGGERS.SITUATIONAL,
             'After 2 consecutive boundaries: Power +20, six distance +15%.',
@@ -118,6 +184,21 @@ const PLAYERS = [
         bowling: { paceOrSpin: 78, accuracy: 62, swingOrTurn: 55, variation: 70, control: 58 },
         fielding: { catching: 65, throwPower: 68, throwAccuracy: 65, agility: 70 },
         physical: { stamina: 80, consistency: 45, matchAwareness: 60 },
+        identity: {
+            orthodoxControl: 52, aerialPower: 98, improvisation: 64, strikeRotation: 44,
+            yorkerPunish: 70, shortBallPunish: 78, spinRead: 70, paceRead: 68,
+            deathComposure: 58, gapManipulation: 50, legSideWhip: 92, offSidePrecision: 56
+        },
+        conversionProfile: {
+            orthodoxBoundaryBias: 0.82, loftedSixBias: 1.22, aerialCatchSuppression: 0.92, gapTwoBias: 0.80,
+            yorkerPunishBias: 1.04, shortBallPunishBias: 1.08, misHitSurvivalBias: 0.88, edgeToFourBias: 0.98
+        },
+        signatureMatrix: {
+            lofted: {
+                spin: { sweetAdd: 0.07, edgeAdd: 0.02, missAdd: 0.01, matchupMult: 1.07 },
+                yorker: { sweetAdd: 0.03, edgeAdd: 0.04, missAdd: 0.03, matchupMult: 0.98 }
+            }
+        },
         signature: createAbility(
             'Boom Boom', ABILITY_TRIGGERS.PASSIVE,
             'Power +55, six distance +25%. Defensive timing -15%, Composure -15.',
@@ -286,6 +367,20 @@ const PLAYERS = [
         bowling: { paceOrSpin: 10, accuracy: 10, swingOrTurn: 5, variation: 5, control: 10 },
         fielding: { catching: 92, throwPower: 85, throwAccuracy: 88, agility: 78 },
         physical: { stamina: 90, consistency: 85, matchAwareness: 95 },
+        identity: {
+            orthodoxControl: 86, aerialPower: 90, improvisation: 82, strikeRotation: 80,
+            yorkerPunish: 96, shortBallPunish: 70, spinRead: 88, paceRead: 90,
+            deathComposure: 99, gapManipulation: 84, legSideWhip: 94, offSidePrecision: 82
+        },
+        conversionProfile: {
+            orthodoxBoundaryBias: 1.00, loftedSixBias: 1.10, aerialCatchSuppression: 1.10, gapTwoBias: 1.02,
+            yorkerPunishBias: 1.16, shortBallPunishBias: 1.00, misHitSurvivalBias: 1.14, edgeToFourBias: 1.02
+        },
+        signatureMatrix: {
+            lofted: { yorker: { sweetAdd: 0.06, cleanAdd: 0.03, matchupMult: 1.09 } },
+            scoop: { yorker: { sweetAdd: 0.04, cleanAdd: 0.03, matchupMult: 1.07 } },
+            chase: { cleanAdd: 0.02, sweetAdd: 0.02, matchupMult: 1.03 }
+        },
         signature: createAbility(
             'Captain Cool', ABILITY_TRIGGERS.ACTIVATABLE,
             'Helicopter Shot (1/innings): +40 Power on yorkers. Immune to pressure.',
@@ -374,6 +469,15 @@ const PLAYERS = [
         bowling: { paceOrSpin: 95, accuracy: 95, swingOrTurn: 88, variation: 94, control: 96 },
         fielding: { catching: 72, throwPower: 76, throwAccuracy: 78, agility: 74 },
         physical: { stamina: 90, consistency: 94, matchAwareness: 95 },
+        identity: {
+            orthodoxControl: 24, aerialPower: 26, improvisation: 20, strikeRotation: 30,
+            yorkerPunish: 22, shortBallPunish: 24, spinRead: 28, paceRead: 26,
+            deathComposure: 64, gapManipulation: 24, legSideWhip: 28, offSidePrecision: 24
+        },
+        conversionProfile: {
+            orthodoxBoundaryBias: 0.82, loftedSixBias: 0.72, aerialCatchSuppression: 0.94, gapTwoBias: 0.86,
+            yorkerPunishBias: 0.84, shortBallPunishBias: 0.86, misHitSurvivalBias: 0.92, edgeToFourBias: 0.90
+        },
         // Major unique effect justified: elite death-overs yorker execution.
         signature: createAbility(
             'Death Overs Precision', ABILITY_TRIGGERS.SITUATIONAL,
@@ -527,6 +631,23 @@ const PLAYERS = [
         bowling: { paceOrSpin: 72, accuracy: 70, swingOrTurn: 62, variation: 70, control: 70 },
         fielding: { catching: 84, throwPower: 90, throwAccuracy: 82, agility: 76 },
         physical: { stamina: 86, consistency: 74, matchAwareness: 82 },
+        identity: {
+            orthodoxControl: 66, aerialPower: 97, improvisation: 72, strikeRotation: 64,
+            yorkerPunish: 80, shortBallPunish: 84, spinRead: 76, paceRead: 78,
+            deathComposure: 90, gapManipulation: 72, legSideWhip: 96, offSidePrecision: 70
+        },
+        conversionProfile: {
+            orthodoxBoundaryBias: 0.95, loftedSixBias: 1.18, aerialCatchSuppression: 1.02, gapTwoBias: 0.92,
+            yorkerPunishBias: 1.10, shortBallPunishBias: 1.10, misHitSurvivalBias: 1.00, edgeToFourBias: 1.01
+        },
+        signatureMatrix: {
+            lofted: {
+                yorker: { cleanAdd: 0.03, sweetAdd: 0.04, matchupMult: 1.04 },
+                short: { cleanAdd: 0.04, sweetAdd: 0.05, matchupMult: 1.08 }
+            },
+            pull: { short: { sweetAdd: 0.04, matchupMult: 1.06 } },
+            chase: { sweetAdd: 0.02, matchupMult: 1.02 }
+        },
         // Major unique effect justified: elite death-over hitting profile.
         signature: createAbility(
             'Death-Over Demolisher', ABILITY_TRIGGERS.SITUATIONAL,
@@ -546,6 +667,15 @@ const PLAYERS = [
         bowling: { paceOrSpin: 90, accuracy: 88, swingOrTurn: 80, variation: 92, control: 88 },
         fielding: { catching: 60, throwPower: 72, throwAccuracy: 68, agility: 66 },
         physical: { stamina: 84, consistency: 86, matchAwareness: 88 },
+        identity: {
+            orthodoxControl: 28, aerialPower: 30, improvisation: 24, strikeRotation: 34,
+            yorkerPunish: 26, shortBallPunish: 30, spinRead: 34, paceRead: 34,
+            deathComposure: 68, gapManipulation: 28, legSideWhip: 34, offSidePrecision: 30
+        },
+        conversionProfile: {
+            orthodoxBoundaryBias: 0.84, loftedSixBias: 0.76, aerialCatchSuppression: 0.96, gapTwoBias: 0.88,
+            yorkerPunishBias: 0.86, shortBallPunishBias: 0.88, misHitSurvivalBias: 0.94, edgeToFourBias: 0.92
+        },
         // Major unique effect justified: classic death overs wicket specialist.
         signature: createAbility(
             'Death Wicket Hunter', ABILITY_TRIGGERS.SITUATIONAL,
@@ -643,6 +773,87 @@ const TEAMS = {
     }
 };
 
+const PLAYER_ALLOWED_SHOTS = Object.freeze({
+    kohli: ['defensive', 'drive', 'cut', 'flick', 'straight_drive', 'on_drive', 'lofted'],
+    tendulkar: ['defensive', 'drive', 'cut', 'pull', 'sweep', 'straight_drive', 'late_cut', 'flick', 'on_drive', 'lofted'],
+    devilliers: ['defensive', 'drive', 'pull', 'sweep', 'cut', 'lofted', 'scoop', 'switch_hit', 'reverse_sweep', 'ramp_lap', 'upper_cut', 'lap', 'reverse_lap', 'inside_out'],
+    gayle: ['defensive', 'drive', 'pull', 'lofted', 'slog', 'slog_sweep', 'flick'],
+    afridi: ['defensive', 'drive', 'pull', 'sweep', 'lofted', 'slog', 'slog_sweep', 'charge'],
+    lara: ['defensive', 'drive', 'cut', 'pull', 'sweep', 'late_cut', 'inside_out', 'straight_drive', 'lofted'],
+    malinga: ['defensive', 'drive', 'lofted'],
+    akram: ['defensive', 'drive', 'lofted', 'flick'],
+    murali: ['defensive', 'drive', 'lofted'],
+    warne: ['defensive', 'drive', 'lofted', 'slog_sweep'],
+    steyn: ['defensive', 'drive', 'lofted'],
+    kallis: ['defensive', 'drive', 'cut', 'pull', 'straight_drive', 'flick', 'on_drive', 'lofted'],
+    shakib: ['defensive', 'drive', 'cut', 'sweep', 'reverse_sweep', 'slog_sweep', 'flick', 'lofted'],
+    dhoni: ['defensive', 'drive', 'pull', 'lofted', 'scoop', 'helicopter', 'flick', 'on_drive'],
+    sangakkara: ['defensive', 'drive', 'cut', 'sweep', 'late_cut', 'flick', 'lofted'],
+    banton: ['defensive', 'drive', 'pull', 'cut', 'lofted', 'scoop', 'upper_cut'],
+    holder: ['defensive', 'drive', 'pull', 'lofted'],
+    amir: ['defensive', 'drive', 'lofted'],
+    bumrah: ['defensive', 'drive', 'lofted'],
+    samson: ['defensive', 'drive', 'pull', 'cut', 'lofted', 'inside_out', 'upper_cut'],
+    sarfaraz: ['defensive', 'drive', 'cut', 'flick', 'lofted'],
+    chris_green: ['defensive', 'drive', 'lofted'],
+    zaman_khan: ['defensive', 'drive', 'lofted'],
+    finn_allen: ['defensive', 'drive', 'pull', 'cut', 'lofted', 'slog', 'scoop'],
+    seifert: ['defensive', 'drive', 'pull', 'cut', 'lofted', 'ramp_lap'],
+    ferguson: ['defensive', 'drive', 'lofted'],
+    shadab: ['defensive', 'drive', 'cut', 'sweep', 'reverse_sweep', 'slog_sweep', 'lofted'],
+    zampa: ['defensive', 'drive', 'lofted'],
+    pollard: ['defensive', 'drive', 'pull', 'lofted', 'scoop', 'slog', 'slog_sweep', 'helicopter'],
+    umar_gul: ['defensive', 'drive', 'lofted'],
+    lendl_simmons: ['defensive', 'drive', 'pull', 'cut', 'flick', 'lofted'],
+    marco_jansen: ['defensive', 'drive', 'pull', 'lofted']
+});
+
+const PLAYER_ALLOWED_DELIVERIES = Object.freeze({
+    kohli: ['good_length', 'full_length', 'inswing', 'slower_ball'],
+    tendulkar: ['stock', 'flighted', 'top_spinner'],
+    gayle: ['stock', 'arm_ball', 'flighted', 'top_spinner'],
+    afridi: ['stock', 'googly', 'flipper', 'slider', 'top_spinner', 'flighted'],
+    lara: [],
+    malinga: ['yorker', 'slower_ball', 'slower_bouncer', 'good_length', 'bouncer', 'inswing'],
+    akram: ['yorker', 'good_length', 'full_length', 'inswing', 'outswing', 'off_cutter'],
+    murali: ['stock', 'doosra', 'arm_ball', 'carrom_ball', 'flighted', 'top_spinner'],
+    warne: ['stock', 'googly', 'flipper', 'slider', 'flighted', 'top_spinner'],
+    steyn: ['yorker', 'bouncer', 'good_length', 'full_length', 'outswing', 'knuckle_ball'],
+    kallis: ['good_length', 'full_length', 'inswing', 'outswing', 'off_cutter'],
+    shakib: ['stock', 'doosra', 'arm_ball', 'carrom_ball', 'flighted', 'top_spinner'],
+    dhoni: [],
+    sangakkara: [],
+    banton: [],
+    holder: ['good_length', 'full_length', 'slower_ball', 'off_cutter', 'inswing', 'outswing'],
+    amir: ['yorker', 'inswing', 'outswing', 'good_length', 'full_length', 'off_cutter'],
+    bumrah: ['yorker', 'good_length', 'slower_ball', 'knuckle_ball', 'off_cutter', 'bouncer'],
+    samson: [],
+    sarfaraz: [],
+    chris_green: ['stock', 'carrom_ball', 'arm_ball', 'flighted', 'slider', 'top_spinner'],
+    zaman_khan: ['yorker', 'slower_ball', 'knuckle_ball', 'full_length', 'good_length', 'bouncer'],
+    finn_allen: [],
+    seifert: [],
+    ferguson: ['bouncer', 'slower_bouncer', 'yorker', 'good_length', 'off_cutter', 'outswing'],
+    shadab: ['stock', 'googly', 'flipper', 'slider', 'flighted', 'top_spinner'],
+    zampa: ['stock', 'googly', 'flipper', 'slider', 'flighted', 'top_spinner'],
+    pollard: ['good_length', 'full_length', 'slower_ball', 'off_cutter'],
+    umar_gul: ['yorker', 'slower_ball', 'knuckle_ball', 'off_cutter', 'good_length', 'bouncer'],
+    lendl_simmons: ['good_length', 'full_length', 'slower_ball'],
+    marco_jansen: ['good_length', 'full_length', 'bouncer', 'slower_bouncer', 'outswing', 'off_cutter']
+});
+
+PLAYERS.forEach((player) => {
+    const allowed = PLAYER_ALLOWED_SHOTS[player.id];
+    player.allowedShotIds = Array.isArray(allowed) && allowed.length > 0
+        ? [...allowed]
+        : ['defensive', 'drive', 'lofted'];
+
+    const allowedDeliveries = PLAYER_ALLOWED_DELIVERIES[player.id];
+    if (Array.isArray(allowedDeliveries) && allowedDeliveries.length > 0) {
+        player.allowedDeliveryIds = [...allowedDeliveries];
+    }
+});
+
 // ── DELIVERY TYPES ─────────────────────────────────────────
 
 const PACE_DELIVERIES = [
@@ -651,6 +862,9 @@ const PACE_DELIVERIES = [
     { id: 'good_length', name: 'Good Length', length: 'good', risk: 0.1, difficulty: 0.3, icon: '+' },
     { id: 'full_length', name: 'Full Length', length: 'full_driving', risk: 0.15, difficulty: 0.4, icon: '|' },
     { id: 'slower_ball', name: 'Slower Ball', length: 'good', risk: 0.2, difficulty: 0.6, icon: '~' },
+    { id: 'knuckle_ball', name: 'Knuckle Ball', length: 'good', risk: 0.24, difficulty: 0.72, icon: 'K' },
+    { id: 'off_cutter', name: 'Off Cutter', length: 'good', risk: 0.2, difficulty: 0.62, icon: 'OC' },
+    { id: 'slower_bouncer', name: 'Slower Bouncer', length: 'short', risk: 0.28, difficulty: 0.66, icon: 'SB' },
     { id: 'inswing', name: 'In-Swing', length: 'good', risk: 0.15, difficulty: 0.5, icon: '<' },
     { id: 'outswing', name: 'Out-Swing', length: 'good', risk: 0.15, difficulty: 0.5, icon: '>' }
 ];
@@ -661,7 +875,10 @@ const SPIN_DELIVERIES = [
     { id: 'googly', name: 'Googly', length: 'good', risk: 0.25, difficulty: 0.7, icon: 'G' },
     { id: 'flighted', name: 'Flighted', length: 'full_driving', risk: 0.2, difficulty: 0.5, icon: '*' },
     { id: 'arm_ball', name: 'Arm Ball', length: 'good', risk: 0.15, difficulty: 0.5, icon: '🧿' },
-    { id: 'top_spinner', name: 'Top Spinner', length: 'good', risk: 0.15, difficulty: 0.5, icon: '🧲' }
+    { id: 'top_spinner', name: 'Top Spinner', length: 'good', risk: 0.15, difficulty: 0.5, icon: '🧲' },
+    { id: 'carrom_ball', name: 'Carrom Ball', length: 'good', risk: 0.24, difficulty: 0.74, icon: 'CB' },
+    { id: 'flipper', name: 'Flipper', length: 'full', risk: 0.24, difficulty: 0.72, icon: 'F' },
+    { id: 'slider', name: 'Slider', length: 'good', risk: 0.22, difficulty: 0.66, icon: 'SL' }
 ];
 
 // ── SHOT TYPES ─────────────────────────────────────────────
@@ -674,7 +891,27 @@ const SHOT_TYPES = [
     { id: 'cut', name: 'Cut', key: '5', risk: 0.2, powerMult: 0.65, category: 'drive', icon: 'C' },
     { id: 'lofted', name: 'Lofted', key: '6', risk: 0.45, powerMult: 1.0, category: 'power', icon: 'L' },
     { id: 'scoop', name: 'Scoop/Ramp', key: '7', risk: 0.55, powerMult: 0.5, category: 'innovative', icon: 'R' },
-    { id: 'switch_hit', name: 'Switch Hit', key: '8', risk: 0.5, powerMult: 0.75, category: 'innovative', icon: '🔀' }
+    { id: 'switch_hit', name: 'Switch Hit', key: '8', risk: 0.5, powerMult: 0.75, category: 'innovative', icon: '🔀' },
+    { id: 'straight_drive', name: 'Straight Drive', key: '', risk: 0.13, powerMult: 0.72, category: 'drive', icon: 'SD' },
+    { id: 'on_drive', name: 'On Drive', key: '', risk: 0.18, powerMult: 0.72, category: 'drive', icon: 'OD' },
+    { id: 'flick', name: 'Flick', key: '', risk: 0.18, powerMult: 0.66, category: 'drive', icon: 'FL' },
+    { id: 'late_cut', name: 'Late Cut', key: '', risk: 0.26, powerMult: 0.62, category: 'drive', icon: 'LC' },
+    { id: 'upper_cut', name: 'Upper Cut', key: '', risk: 0.42, powerMult: 0.78, category: 'innovative', icon: 'UC' },
+    { id: 'inside_out', name: 'Inside Out', key: '', risk: 0.33, powerMult: 0.80, category: 'innovative', icon: 'IO' },
+    { id: 'backfoot_punch', name: 'Backfoot Punch', key: '', risk: 0.20, powerMult: 0.68, category: 'drive', icon: 'BP' },
+    { id: 'dab', name: 'Dab', key: '', risk: 0.24, powerMult: 0.50, category: 'innovative', icon: 'DB' },
+    { id: 'lap', name: 'Lap', key: '', risk: 0.36, powerMult: 0.54, category: 'innovative', icon: 'LP' },
+    { id: 'reverse_lap', name: 'Reverse Lap', key: '', risk: 0.50, powerMult: 0.58, category: 'innovative', icon: 'RL' },
+    { id: 'ramp_lap', name: 'Ramp', key: '', risk: 0.52, powerMult: 0.56, category: 'innovative', icon: 'RA' },
+    { id: 'reverse_sweep', name: 'Reverse Sweep', key: '', risk: 0.40, powerMult: 0.62, category: 'innovative', icon: 'RS' },
+    { id: 'paddle_sweep', name: 'Paddle Sweep', key: '', risk: 0.28, powerMult: 0.56, category: 'sweep', icon: 'PS' },
+    { id: 'slog_sweep', name: 'Slog Sweep', key: '', risk: 0.44, powerMult: 0.92, category: 'power', icon: 'SS' },
+    { id: 'helicopter', name: 'Helicopter', key: '', risk: 0.50, powerMult: 1.05, category: 'power', icon: 'H' },
+    { id: 'charge', name: 'Charge', key: '', risk: 0.36, powerMult: 0.88, category: 'power', icon: 'CH' },
+    { id: 'chip', name: 'Chip', key: '', risk: 0.23, powerMult: 0.55, category: 'drive', icon: 'CP' },
+    { id: 'lofted_cover', name: 'Lofted Cover', key: '', risk: 0.40, powerMult: 0.94, category: 'power', icon: 'LCV' },
+    { id: 'slog', name: 'Slog', key: '', risk: 0.48, powerMult: 1.00, category: 'power', icon: 'SG' },
+    { id: 'glance', name: 'Glance', key: '', risk: 0.16, powerMult: 0.60, category: 'drive', icon: 'GL' }
 ];
 
 // ── PITCH TYPES ────────────────────────────────────────────
@@ -695,65 +932,225 @@ const SHOT_TRAJECTORY_PROFILES = {
     cut:        { baseElevation: 11, groundRoll: 0.52, aerialBias: 0.25, controlBias: 1.0 },
     lofted:     { baseElevation: 28, groundRoll: 0.18, aerialBias: 0.95, controlBias: 0.75 },
     scoop:      { baseElevation: 33, groundRoll: 0.10, aerialBias: 1.00, controlBias: 0.65 },
-    switch_hit: { baseElevation: 26, groundRoll: 0.20, aerialBias: 0.85, controlBias: 0.70 }
+    switch_hit: { baseElevation: 26, groundRoll: 0.20, aerialBias: 0.85, controlBias: 0.70 },
+    straight_drive: { baseElevation: 12, groundRoll: 0.60, aerialBias: 0.22, controlBias: 1.08 },
+    on_drive:       { baseElevation: 13, groundRoll: 0.58, aerialBias: 0.28, controlBias: 1.04 },
+    flick:          { baseElevation: 12, groundRoll: 0.50, aerialBias: 0.30, controlBias: 1.03 },
+    late_cut:       { baseElevation: 10, groundRoll: 0.54, aerialBias: 0.22, controlBias: 1.02 },
+    upper_cut:      { baseElevation: 24, groundRoll: 0.22, aerialBias: 0.76, controlBias: 0.78 },
+    inside_out:     { baseElevation: 20, groundRoll: 0.34, aerialBias: 0.68, controlBias: 0.86 },
+    backfoot_punch: { baseElevation: 11, groundRoll: 0.55, aerialBias: 0.24, controlBias: 1.02 },
+    dab:            { baseElevation: 8,  groundRoll: 0.42, aerialBias: 0.18, controlBias: 1.10 },
+    lap:            { baseElevation: 18, groundRoll: 0.28, aerialBias: 0.64, controlBias: 0.80 },
+    reverse_lap:    { baseElevation: 22, groundRoll: 0.22, aerialBias: 0.72, controlBias: 0.70 },
+    ramp_lap:       { baseElevation: 26, groundRoll: 0.18, aerialBias: 0.82, controlBias: 0.68 },
+    reverse_sweep:  { baseElevation: 16, groundRoll: 0.35, aerialBias: 0.46, controlBias: 0.82 },
+    paddle_sweep:   { baseElevation: 13, groundRoll: 0.40, aerialBias: 0.38, controlBias: 0.92 },
+    slog_sweep:     { baseElevation: 24, groundRoll: 0.26, aerialBias: 0.78, controlBias: 0.74 },
+    helicopter:     { baseElevation: 27, groundRoll: 0.18, aerialBias: 0.90, controlBias: 0.70 },
+    charge:         { baseElevation: 20, groundRoll: 0.30, aerialBias: 0.62, controlBias: 0.80 },
+    chip:           { baseElevation: 14, groundRoll: 0.35, aerialBias: 0.42, controlBias: 0.95 },
+    lofted_cover:   { baseElevation: 25, groundRoll: 0.22, aerialBias: 0.82, controlBias: 0.76 },
+    slog:           { baseElevation: 23, groundRoll: 0.26, aerialBias: 0.80, controlBias: 0.72 },
+    glance:         { baseElevation: 9,  groundRoll: 0.52, aerialBias: 0.20, controlBias: 1.04 }
 };
 
 const SHOT_MATCHUP_PROFILES = {
     defensive: {
         length:   { yorker: 1.10, full: 1.20, full_driving: 1.15, good: 1.25, short: 0.75 },
         line:     { outside_off: 1.00, stumps: 1.05, outside_leg: 0.95 },
-        delivery: { yorker: 0.90, bouncer: 0.85, doosra: 1.05, googly: 1.00, inswing: 1.00, outswing: 0.95 },
+        delivery: { yorker: 0.90, bouncer: 0.85, doosra: 1.05, googly: 1.00, inswing: 1.00, outswing: 0.95, knuckle_ball: 0.96, off_cutter: 0.92, flipper: 0.86 },
         paceSpin: { pace: 1.00, spin: 1.05 },
         movementSensitivity: 0.45
     },
     drive: {
         length:   { yorker: 0.55, full: 1.40, full_driving: 1.55, good: 0.85, short: 0.25 },
         line:     { outside_off: 1.10, stumps: 1.00, outside_leg: 0.85 },
-        delivery: { yorker: 0.65, bouncer: 0.30, slower_ball: 0.95, inswing: 0.92, outswing: 0.88, googly: 0.82, doosra: 0.82 },
+        delivery: { yorker: 0.65, bouncer: 0.30, slower_ball: 0.95, inswing: 0.92, outswing: 0.88, googly: 0.82, doosra: 0.82, knuckle_ball: 0.74, off_cutter: 0.78, flipper: 0.70, slider: 0.78 },
         paceSpin: { pace: 1.00, spin: 0.96 },
         movementSensitivity: 0.75
     },
     pull: {
         length:   { yorker: 0.22, full: 0.40, full_driving: 0.45, good: 0.75, short: 1.60 },
         line:     { outside_off: 0.90, stumps: 1.00, outside_leg: 1.15 },
-        delivery: { yorker: 0.25, bouncer: 1.45, slower_ball: 0.88, inswing: 0.80, outswing: 0.86 },
+        delivery: { yorker: 0.25, bouncer: 1.45, slower_ball: 0.88, inswing: 0.80, outswing: 0.86, slower_bouncer: 1.20, knuckle_ball: 0.76, off_cutter: 0.72 },
         paceSpin: { pace: 1.10, spin: 0.78 },
         movementSensitivity: 0.80
     },
     sweep: {
         length:   { yorker: 0.55, full: 1.05, full_driving: 1.00, good: 1.35, short: 0.45 },
         line:     { outside_off: 0.80, stumps: 1.00, outside_leg: 1.12 },
-        delivery: { yorker: 0.75, bouncer: 0.50, arm_ball: 1.00, doosra: 0.95, googly: 0.88 },
+        delivery: { yorker: 0.75, bouncer: 0.50, arm_ball: 1.00, doosra: 0.95, googly: 0.88, carrom_ball: 0.82, flipper: 0.70, slider: 0.84 },
         paceSpin: { pace: 0.62, spin: 1.22 },
         movementSensitivity: 0.65
     },
     cut: {
         length:   { yorker: 0.35, full: 0.55, full_driving: 0.60, good: 0.95, short: 1.48 },
         line:     { outside_off: 1.20, stumps: 0.92, outside_leg: 0.65 },
-        delivery: { yorker: 0.45, bouncer: 1.15, outswing: 1.05, inswing: 0.82, slower_ball: 0.92 },
+        delivery: { yorker: 0.45, bouncer: 1.15, outswing: 1.05, inswing: 0.82, slower_ball: 0.92, slower_bouncer: 0.98, knuckle_ball: 0.86, off_cutter: 0.80 },
         paceSpin: { pace: 1.00, spin: 0.90 },
         movementSensitivity: 0.70
     },
     lofted: {
         length:   { yorker: 0.65, full: 1.30, full_driving: 1.45, good: 0.78, short: 0.52 },
         line:     { outside_off: 1.00, stumps: 1.02, outside_leg: 1.04 },
-        delivery: { yorker: 0.85, bouncer: 0.60, slower_ball: 0.82, inswing: 0.80, outswing: 0.82, googly: 0.82, doosra: 0.82 },
+        delivery: { yorker: 0.85, bouncer: 0.60, slower_ball: 0.82, inswing: 0.80, outswing: 0.82, googly: 0.82, doosra: 0.82, knuckle_ball: 0.74, off_cutter: 0.76, flipper: 0.66, slider: 0.72 },
         paceSpin: { pace: 1.00, spin: 1.00 },
         movementSensitivity: 0.85
     },
     scoop: {
         length:   { yorker: 1.52, full: 1.18, full_driving: 0.95, good: 0.58, short: 0.30 },
         line:     { outside_off: 0.75, stumps: 1.00, outside_leg: 1.06 },
-        delivery: { yorker: 1.40, bouncer: 0.35, slower_ball: 0.95, inswing: 0.80, outswing: 0.80 },
+        delivery: { yorker: 1.40, bouncer: 0.35, slower_ball: 0.95, inswing: 0.80, outswing: 0.80, knuckle_ball: 0.90, slower_bouncer: 0.32, off_cutter: 0.82 },
         paceSpin: { pace: 1.10, spin: 0.85 },
         movementSensitivity: 0.95
     },
     switch_hit: {
         length:   { yorker: 0.55, full: 1.00, full_driving: 1.05, good: 1.08, short: 0.92 },
         line:     { outside_off: 1.05, stumps: 1.00, outside_leg: 1.00 },
-        delivery: { yorker: 0.72, bouncer: 0.65, googly: 1.15, doosra: 1.12, flighted: 1.08, arm_ball: 1.00 },
+        delivery: { yorker: 0.72, bouncer: 0.65, googly: 1.15, doosra: 1.12, flighted: 1.08, arm_ball: 1.00, carrom_ball: 0.92, flipper: 0.82, slider: 0.90 },
         paceSpin: { pace: 0.75, spin: 1.25 },
         movementSensitivity: 0.90
+    },
+    straight_drive: {
+        length:   { yorker: 0.45, full: 1.45, full_driving: 1.65, good: 0.82, short: 0.20 },
+        line:     { outside_off: 1.05, stumps: 1.12, outside_leg: 0.80 },
+        delivery: { yorker: 0.52, bouncer: 0.22, inswing: 0.92, outswing: 0.88, off_cutter: 0.82 },
+        paceSpin: { pace: 1.00, spin: 0.94 },
+        movementSensitivity: 0.80
+    },
+    on_drive: {
+        length:   { yorker: 0.58, full: 1.36, full_driving: 1.48, good: 0.86, short: 0.26 },
+        line:     { outside_off: 0.72, stumps: 1.08, outside_leg: 1.10 },
+        delivery: { inswing: 1.05, outswing: 0.78, yorker: 0.60, off_cutter: 0.85 },
+        paceSpin: { pace: 1.02, spin: 0.95 },
+        movementSensitivity: 0.76
+    },
+    flick: {
+        length:   { yorker: 0.70, full: 1.16, full_driving: 1.12, good: 1.00, short: 0.60 },
+        line:     { outside_off: 0.70, stumps: 1.00, outside_leg: 1.24 },
+        delivery: { inswing: 1.12, outswing: 0.76, slider: 0.92, arm_ball: 1.04 },
+        paceSpin: { pace: 1.02, spin: 0.98 },
+        movementSensitivity: 0.70
+    },
+    late_cut: {
+        length:   { yorker: 0.38, full: 0.78, full_driving: 0.82, good: 1.06, short: 1.28 },
+        line:     { outside_off: 1.32, stumps: 0.82, outside_leg: 0.42 },
+        delivery: { outswing: 1.10, inswing: 0.66, bouncer: 0.92, slower_bouncer: 0.82 },
+        paceSpin: { pace: 1.00, spin: 0.90 },
+        movementSensitivity: 0.82
+    },
+    upper_cut: {
+        length:   { yorker: 0.20, full: 0.35, full_driving: 0.40, good: 0.62, short: 1.62 },
+        line:     { outside_off: 1.28, stumps: 0.80, outside_leg: 0.28 },
+        delivery: { bouncer: 1.48, slower_bouncer: 1.20, outswing: 1.06, inswing: 0.60 },
+        paceSpin: { pace: 1.14, spin: 0.68 },
+        movementSensitivity: 0.96
+    },
+    inside_out: {
+        length:   { yorker: 0.46, full: 1.10, full_driving: 1.20, good: 1.02, short: 0.50 },
+        line:     { outside_off: 1.14, stumps: 1.00, outside_leg: 0.72 },
+        delivery: { flighted: 1.12, doosra: 0.88, googly: 0.94, carrom_ball: 0.84 },
+        paceSpin: { pace: 0.82, spin: 1.12 },
+        movementSensitivity: 0.84
+    },
+    backfoot_punch: {
+        length:   { yorker: 0.40, full: 0.72, full_driving: 0.78, good: 1.16, short: 1.05 },
+        line:     { outside_off: 1.12, stumps: 1.00, outside_leg: 0.76 },
+        delivery: { off_cutter: 0.90, slider: 0.92, top_spinner: 0.88, bouncer: 0.82 },
+        paceSpin: { pace: 1.00, spin: 0.98 },
+        movementSensitivity: 0.74
+    },
+    dab: {
+        length:   { yorker: 0.48, full: 0.72, full_driving: 0.76, good: 1.08, short: 1.20 },
+        line:     { outside_off: 1.24, stumps: 0.90, outside_leg: 0.55 },
+        delivery: { bouncer: 1.00, slower_bouncer: 1.02, outswing: 1.08, inswing: 0.68 },
+        paceSpin: { pace: 1.02, spin: 0.90 },
+        movementSensitivity: 0.88
+    },
+    lap: {
+        length:   { yorker: 1.36, full: 1.12, full_driving: 0.88, good: 0.66, short: 0.30 },
+        line:     { outside_off: 0.62, stumps: 1.00, outside_leg: 1.20 },
+        delivery: { yorker: 1.24, slower_ball: 0.90, inswing: 1.05, outswing: 0.76 },
+        paceSpin: { pace: 1.02, spin: 0.90 },
+        movementSensitivity: 0.94
+    },
+    reverse_lap: {
+        length:   { yorker: 1.22, full: 1.00, full_driving: 0.84, good: 0.64, short: 0.32 },
+        line:     { outside_off: 1.08, stumps: 1.00, outside_leg: 0.68 },
+        delivery: { yorker: 1.18, inswing: 0.70, outswing: 1.00, carrom_ball: 0.86 },
+        paceSpin: { pace: 0.96, spin: 1.04 },
+        movementSensitivity: 1.00
+    },
+    ramp_lap: {
+        length:   { yorker: 1.44, full: 1.15, full_driving: 0.92, good: 0.58, short: 0.26 },
+        line:     { outside_off: 0.82, stumps: 1.00, outside_leg: 1.08 },
+        delivery: { yorker: 1.34, bouncer: 0.28, slower_bouncer: 0.40, knuckle_ball: 0.88 },
+        paceSpin: { pace: 1.10, spin: 0.84 },
+        movementSensitivity: 1.02
+    },
+    reverse_sweep: {
+        length:   { yorker: 0.62, full: 1.02, full_driving: 0.96, good: 1.20, short: 0.52 },
+        line:     { outside_off: 1.18, stumps: 1.00, outside_leg: 0.64 },
+        delivery: { googly: 1.10, doosra: 0.92, carrom_ball: 0.86, slider: 0.90 },
+        paceSpin: { pace: 0.64, spin: 1.30 },
+        movementSensitivity: 0.94
+    },
+    paddle_sweep: {
+        length:   { yorker: 0.82, full: 1.04, full_driving: 1.00, good: 1.14, short: 0.56 },
+        line:     { outside_off: 0.72, stumps: 1.00, outside_leg: 1.16 },
+        delivery: { arm_ball: 1.08, top_spinner: 0.94, flipper: 0.84 },
+        paceSpin: { pace: 0.66, spin: 1.22 },
+        movementSensitivity: 0.82
+    },
+    slog_sweep: {
+        length:   { yorker: 0.44, full: 1.12, full_driving: 1.20, good: 1.10, short: 0.54 },
+        line:     { outside_off: 0.62, stumps: 1.00, outside_leg: 1.24 },
+        delivery: { flighted: 1.16, doosra: 0.86, googly: 0.82, flipper: 0.70 },
+        paceSpin: { pace: 0.62, spin: 1.28 },
+        movementSensitivity: 0.88
+    },
+    helicopter: {
+        length:   { yorker: 1.34, full: 1.16, full_driving: 0.96, good: 0.74, short: 0.34 },
+        line:     { outside_off: 0.72, stumps: 1.00, outside_leg: 1.08 },
+        delivery: { yorker: 1.30, inswing: 1.04, off_cutter: 0.84, knuckle_ball: 0.80 },
+        paceSpin: { pace: 1.08, spin: 0.82 },
+        movementSensitivity: 0.94
+    },
+    charge: {
+        length:   { yorker: 0.28, full: 1.24, full_driving: 1.30, good: 0.88, short: 0.36 },
+        line:     { outside_off: 0.94, stumps: 1.00, outside_leg: 1.02 },
+        delivery: { flighted: 1.22, top_spinner: 0.82, flipper: 0.64, bouncer: 0.28 },
+        paceSpin: { pace: 0.58, spin: 1.34 },
+        movementSensitivity: 0.96
+    },
+    chip: {
+        length:   { yorker: 0.66, full: 1.06, full_driving: 1.04, good: 1.00, short: 0.62 },
+        line:     { outside_off: 1.04, stumps: 1.00, outside_leg: 0.90 },
+        delivery: { off_cutter: 0.96, slider: 0.94, knuckle_ball: 0.88 },
+        paceSpin: { pace: 0.92, spin: 1.02 },
+        movementSensitivity: 0.76
+    },
+    lofted_cover: {
+        length:   { yorker: 0.52, full: 1.26, full_driving: 1.34, good: 0.90, short: 0.40 },
+        line:     { outside_off: 1.24, stumps: 0.94, outside_leg: 0.58 },
+        delivery: { outswing: 0.92, inswing: 0.76, knuckle_ball: 0.82, off_cutter: 0.86 },
+        paceSpin: { pace: 0.96, spin: 1.02 },
+        movementSensitivity: 0.90
+    },
+    slog: {
+        length:   { yorker: 0.38, full: 1.08, full_driving: 1.12, good: 1.00, short: 0.68 },
+        line:     { outside_off: 0.86, stumps: 1.00, outside_leg: 1.08 },
+        delivery: { knuckle_ball: 0.74, off_cutter: 0.78, slower_ball: 0.84, flipper: 0.66 },
+        paceSpin: { pace: 0.96, spin: 0.98 },
+        movementSensitivity: 0.98
+    },
+    glance: {
+        length:   { yorker: 0.80, full: 1.00, full_driving: 0.94, good: 1.05, short: 0.60 },
+        line:     { outside_off: 0.60, stumps: 0.96, outside_leg: 1.30 },
+        delivery: { inswing: 1.08, outswing: 0.70, slider: 1.00, arm_ball: 1.04 },
+        paceSpin: { pace: 1.00, spin: 0.98 },
+        movementSensitivity: 0.72
     }
 };
 
@@ -783,10 +1180,40 @@ function getTeamPlayers(teamId) {
 }
 
 function getDeliveriesForBowler(player) {
+    if (!player) return [];
+
+    let deliveries = [];
     if (player.bowlingStyle === BOWLING_STYLE.PACE || player.bowlingStyle === BOWLING_STYLE.MEDIUM) {
-        return PACE_DELIVERIES;
+        // Core pace set unless explicitly expanded by per-player allowedDeliveryIds.
+        deliveries = PACE_DELIVERIES.filter((d) => ['good_length', 'full_length', 'yorker', 'slower_ball', 'inswing', 'outswing', 'bouncer'].includes(d.id));
+    } else if (player.bowlingStyle === BOWLING_STYLE.SPIN_LEG) {
+        deliveries = SPIN_DELIVERIES.filter((d) => ['stock', 'googly', 'flighted', 'top_spinner', 'flipper', 'slider'].includes(d.id));
+    } else if (player.bowlingStyle === BOWLING_STYLE.SPIN_OFF) {
+        deliveries = SPIN_DELIVERIES.filter((d) => ['stock', 'doosra', 'flighted', 'arm_ball', 'top_spinner', 'carrom_ball'].includes(d.id));
+    } else {
+        deliveries = SPIN_DELIVERIES;
     }
-    return SPIN_DELIVERIES;
+
+    if (!Array.isArray(player.allowedDeliveryIds) || player.allowedDeliveryIds.length === 0) {
+        return deliveries;
+    }
+
+    const allowed = new Set(player.allowedDeliveryIds);
+    const filtered = deliveries.filter((d) => allowed.has(d.id));
+    return filtered.length > 0 ? filtered : deliveries;
+}
+
+function getShotsForBatter(player) {
+    if (!player) return SHOT_TYPES.filter((s) => ['defensive', 'drive', 'lofted'].includes(s.id));
+
+    const allowed = Array.isArray(player.allowedShotIds) ? player.allowedShotIds : [];
+    if (allowed.length > 0) {
+        const allowedSet = new Set(allowed);
+        const filtered = SHOT_TYPES.filter((s) => allowedSet.has(s.id));
+        if (filtered.length > 0) return filtered;
+    }
+
+    return SHOT_TYPES.filter((s) => ['defensive', 'drive', 'lofted'].includes(s.id));
 }
 
 function isPaceBowler(player) {
@@ -811,6 +1238,7 @@ if (typeof module !== 'undefined' && module.exports) {
         getPlayerById,
         getTeamPlayers,
         getDeliveriesForBowler,
+        getShotsForBatter,
         isPaceBowler
     };
 }

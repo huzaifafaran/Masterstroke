@@ -155,14 +155,12 @@ class VsAIModeController {
     endMatch() {
         const result = this.engine.getMatchResult();
         this.gc.emit('matchEnd', {
+            ...result,
             mode: 'vs_ai',
             toss: {
                 winner: this.engine.tossWinner,
                 choice: this.engine.tossChoice
-            },
-            winner: result.winner,
-            margin: result.margin,
-            method: result.method
+            }
         });
         this.gc.setPhase('matchEnd');
     }

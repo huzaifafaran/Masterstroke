@@ -1160,6 +1160,7 @@ button .black-emoji img.emoji,
     display: none !important;
 }
 
+/*
 .debug-overlay {
     position: fixed;
     right: 10px;
@@ -1223,6 +1224,7 @@ button .black-emoji img.emoji,
         font-size: 10px;
     }
 }
+*/
 
 /* ── Result Screen ──────────────────────────────────────────── */
 #result-screen {

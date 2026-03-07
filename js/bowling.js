@@ -99,6 +99,9 @@ class BowlingSystem {
 
         // Slower ball
         if (delivery.id === 'slower_ball') speed *= 0.75;
+        if (delivery.id === 'knuckle_ball') speed *= 0.78;
+        if (delivery.id === 'off_cutter') speed *= 0.86;
+        if (delivery.id === 'slower_bouncer') speed *= 0.76;
         if (delivery.id === 'flighted') speed *= 0.85;
 
         // Swing/Turn
@@ -107,6 +110,8 @@ class BowlingSystem {
         // Pitch modifier already applied in getEffectiveAttributes
         if (delivery.id === 'inswing' || delivery.id === 'outswing') swingAmount *= 1.3;
         if (delivery.id === 'doosra' || delivery.id === 'googly') swingAmount *= 1.2;
+        if (delivery.id === 'off_cutter' || delivery.id === 'slider') swingAmount *= 1.15;
+        if (delivery.id === 'carrom_ball' || delivery.id === 'flipper') swingAmount *= 1.2;
 
         // Wasim Akram sultan of swing
         if (bowler.signature?.modifiers?.swingAdd && bowler.signature.condition(context)) {
@@ -115,7 +120,7 @@ class BowlingSystem {
 
         // Variation disguise
         let disguiseLevel = attrs.variation / 100;
-        if (delivery.id === 'slower_ball' || delivery.id === 'doosra' || delivery.id === 'googly') {
+        if (delivery.id === 'slower_ball' || delivery.id === 'doosra' || delivery.id === 'googly' || delivery.id === 'knuckle_ball' || delivery.id === 'carrom_ball' || delivery.id === 'flipper') {
             disguiseLevel *= execQuality; // perfect execution = maximum disguise
         }
 
@@ -134,6 +139,9 @@ class BowlingSystem {
         if (delivery.length === 'short') bounce = 0.85;
         if (delivery.length === 'full') bounce = 0.2;
         if (delivery.length === 'full_driving') bounce = 0.35;
+        if (delivery.id === 'flipper') bounce = 0.15;
+        if (delivery.id === 'slider') bounce = 0.30;
+        if (delivery.id === 'slower_bouncer') bounce = 0.75;
         bounce += this.engine.pitch.bounceVar * (Math.random() * 2 - 1);
 
         // Yorker accuracy boost for Malinga
@@ -148,6 +156,8 @@ class BowlingSystem {
         difficulty *= (1 + swingAmount * 0.3);
         difficulty *= (1 + (speed - 100) / 200);
         if (disguiseLevel > 0.7) difficulty += 0.15;
+        if (delivery.id === 'knuckle_ball' || delivery.id === 'carrom_ball') difficulty += 0.05;
+        if (delivery.id === 'flipper') difficulty += 0.06;
         difficulty = Math.min(difficulty, 0.95);
 
         // Determine what the ball looks like to the batter
@@ -221,6 +231,9 @@ class BowlingSystem {
             'good_length': { x: 50, y: 55 },
             'full_length': { x: 50, y: 75 },
             'slower_ball': { x: 50, y: 60 },
+            'knuckle_ball': { x: 50, y: 62 },
+            'off_cutter': { x: 44, y: 58 },
+            'slower_bouncer': { x: 50, y: 20 },
             'inswing': { x: 60, y: 55 },
             'outswing': { x: 40, y: 55 },
             'stock': { x: 50, y: 55 },
@@ -228,7 +241,10 @@ class BowlingSystem {
             'googly': { x: 55, y: 55 },
             'flighted': { x: 50, y: 65 },
             'arm_ball': { x: 50, y: 55 },
-            'top_spinner': { x: 50, y: 55 }
+            'top_spinner': { x: 50, y: 55 },
+            'carrom_ball': { x: 46, y: 56 },
+            'flipper': { x: 50, y: 70 },
+            'slider': { x: 54, y: 56 }
         };
 
         const target = targets[delivery.id] || { x: 50, y: 55 };

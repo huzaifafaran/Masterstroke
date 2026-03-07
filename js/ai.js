@@ -56,7 +56,7 @@ class CricketAI {
     }
 
     selectAIShot(delivery, aggression, tendency, batter) {
-        const shots = [...SHOT_TYPES];
+        const shots = typeof getShotsForBatter === 'function' ? [...(getShotsForBatter(batter) || [])] : [...SHOT_TYPES];
         const weights = {};
 
         shots.forEach(shot => {
