@@ -21,10 +21,47 @@ class MatchEngine {
         this.isMatchOver = false;
         this.tossWinner = null;
         this.tossChoice = null;
+        this.customBattingOrder = {
+            team1: Array.isArray(config.team1BattingOrder) ? [...config.team1BattingOrder] : null,
+            team2: Array.isArray(config.team2BattingOrder) ? [...config.team2BattingOrder] : null
+        };
+        this.customBowlingRotation = {
+            team1: Array.isArray(config.team1BowlingRotation) ? [...config.team1BowlingRotation] : null,
+            team2: Array.isArray(config.team2BowlingRotation) ? [...config.team2BowlingRotation] : null
+        };
         
         // Mode support
         this.mode = null;
         this.duelBalls = 0;
+    }
+
+    getTeamKey(teamRef) {
+        if (teamRef === this.team1) return 'team1';
+        if (teamRef === this.team2) return 'team2';
+        return null;
+    }
+
+    applyIdOrder(players, orderIds = null) {
+        if (!Array.isArray(players) || players.length === 0) return [];
+        if (!Array.isArray(orderIds) || orderIds.length === 0) return [...players];
+
+        const byId = new Map(players.map((p) => [p.id, p]));
+        const ordered = [];
+        const seen = new Set();
+
+        orderIds.forEach((id) => {
+            const player = byId.get(id);
+            if (player && !seen.has(id)) {
+                ordered.push(player);
+                seen.add(id);
+            }
+        });
+
+        players.forEach((player) => {
+            if (!seen.has(player.id)) ordered.push(player);
+        });
+
+        return ordered;
     }
 
     forceMode(mode) {
@@ -112,11 +149,18 @@ class MatchEngine {
     }
 
     init() {
-        // Set batting order
-        this.state.battingOrder = [...this.battingTeam];
-        this.state.bowlerRotation = this.bowlingTeam.filter(p =>
+        // Set batting order (supports pre-match custom lineup).
+        const battingTeamKey = this.getTeamKey(this.battingTeam);
+        const battingOrderIds = battingTeamKey ? this.customBattingOrder[battingTeamKey] : null;
+        this.state.battingOrder = this.applyIdOrder(this.battingTeam, battingOrderIds);
+
+        // Build bowling candidates and then apply optional custom bowling rotation.
+        const bowlingCandidates = this.bowlingTeam.filter(p =>
             p.role === PLAYER_ROLES.BOWLER || p.role === PLAYER_ROLES.ALL_ROUNDER
         );
+        const bowlingTeamKey = this.getTeamKey(this.bowlingTeam);
+        const bowlingOrderIds = bowlingTeamKey ? this.customBowlingRotation[bowlingTeamKey] : null;
+        this.state.bowlerRotation = this.applyIdOrder(bowlingCandidates, bowlingOrderIds);
 
         if (this.state.bowlerRotation.length < 5) {
             // Add part-timers if needed

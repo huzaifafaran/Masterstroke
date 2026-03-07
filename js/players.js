@@ -84,7 +84,7 @@ const PLAYERS = [
         physical: { stamina: 90, consistency: 88, matchAwareness: 90 },
         signature: createAbility(
             '360° Mastery', ABILITY_TRIGGERS.PASSIVE,
-            'Unlock 8 extra shot angles. Innovative shot mistiming -50%.',
+            'Unlock 8 extra shot angles. Innovative shot mistiming -80%.',
             () => true,
             { extraShotAngles: 8, innovativeMistimePenaltyMult: 0.5 }
         ),
@@ -120,7 +120,7 @@ const PLAYERS = [
         physical: { stamina: 80, consistency: 45, matchAwareness: 60 },
         signature: createAbility(
             'Boom Boom', ABILITY_TRIGGERS.PASSIVE,
-            'Power +25, six distance +25%. Defensive timing -15%, Composure -15.',
+            'Power +55, six distance +25%. Defensive timing -15%, Composure -15.',
             () => true,
             { powerAdd: 25, sixDistanceMult: 1.25, defensiveTimingMult: 0.85, composureAdd: -15 }
         ),
@@ -171,7 +171,7 @@ const PLAYERS = [
         role: PLAYER_ROLES.BOWLER,
         bowlingStyle: BOWLING_STYLE.PACE,
         batting: { timing: 55, shotPlacement: 45, power: 60, footwork: 50, composure: 55 },
-        bowling: { paceOrSpin: 92, accuracy: 88, swingOrTurn: 95, variation: 88, control: 90 },
+        bowling: { paceOrSpin: 2, accuracy: 8, swingOrTurn: 9, variation: 8, control: 9 },
         fielding: { catching: 55, throwPower: 60, throwAccuracy: 60, agility: 60 },
         physical: { stamina: 85, consistency: 90, matchAwareness: 90 },
         signature: createAbility(
@@ -311,6 +311,280 @@ const PLAYERS = [
             { runSpeedMult: 1.15, gapAccuracyAdd: 20 }
         ),
         aiTendency: { aggression: 0.5, startSlow: false, rotateStrike: true, preferredSide: 'balanced' }
+    },
+
+    // --- MODERN ERA ADDITIONS (balanced: only select players get elite signatures) ---
+    {
+        id: 'banton',
+        name: 'Tom Banton',
+        country: 'England',
+        role: PLAYER_ROLES.BATTER,
+        bowlingStyle: BOWLING_STYLE.NONE,
+        batting: { timing: 78, shotPlacement: 76, power: 84, footwork: 79, composure: 70 },
+        bowling: { paceOrSpin: 8, accuracy: 8, swingOrTurn: 6, variation: 8, control: 8 },
+        fielding: { catching: 72, throwPower: 68, throwAccuracy: 66, agility: 79 },
+        physical: { stamina: 82, consistency: 72, matchAwareness: 74 },
+        signature: null,
+        aiTendency: { aggression: 0.76, startSlow: false, accelerateAfterBalls: 0, preferredSide: 'offside', loftedChance: 0.28 }
+    },
+    {
+        id: 'holder',
+        name: 'Jason Holder',
+        country: 'West Indies',
+        role: PLAYER_ROLES.ALL_ROUNDER,
+        bowlingStyle: BOWLING_STYLE.MEDIUM,
+        batting: { timing: 74, shotPlacement: 70, power: 78, footwork: 72, composure: 80 },
+        bowling: { paceOrSpin: 82, accuracy: 80, swingOrTurn: 76, variation: 74, control: 82 },
+        fielding: { catching: 83, throwPower: 78, throwAccuracy: 76, agility: 72 },
+        physical: { stamina: 92, consistency: 80, matchAwareness: 84 },
+        signature: createAbility(
+            'Tall Utility Spells', ABILITY_TRIGGERS.SITUATIONAL,
+            'Mild control boost in middle overs.',
+            (ms) => ms.currentOver >= 5 && ms.currentOver <= 14,
+            { contextualBoost: 6 }
+        ),
+        aiTendency: { aggression: 0.48, startSlow: true, accelerateAfterBalls: 25, preferredSide: 'balanced', slowerBallChance: 0.28 }
+    },
+    {
+        id: 'amir',
+        name: 'Muhammad Amir',
+        country: 'Pakistan',
+        role: PLAYER_ROLES.BOWLER,
+        bowlingStyle: BOWLING_STYLE.PACE,
+        batting: { timing: 34, shotPlacement: 30, power: 44, footwork: 32, composure: 52 },
+        bowling: { paceOrSpin: 86, accuracy: 86, swingOrTurn: 94, variation: 82, control: 88 },
+        fielding: { catching: 66, throwPower: 72, throwAccuracy: 70, agility: 68 },
+        physical: { stamina: 84, consistency: 84, matchAwareness: 86 },
+        // Major unique effect justified: elite new-ball swing profile.
+        signature: createAbility(
+            'New Ball Swing Assassin', ABILITY_TRIGGERS.SITUATIONAL,
+            'First 4 overs: swing and control spike.',
+            (ms) => ms.currentOver < 4,
+            { swingAdd: 22, contextualBoost: 12 }
+        ),
+        aiTendency: { swingSetupOvers: true, yorkerChance: 0.22, bouncerChance: 0.15, slowerBallChance: 0.20 }
+    },
+    {
+        id: 'bumrah',
+        name: 'Jasprit Bumrah',
+        country: 'India',
+        role: PLAYER_ROLES.BOWLER,
+        bowlingStyle: BOWLING_STYLE.PACE,
+        batting: { timing: 24, shotPlacement: 20, power: 34, footwork: 20, composure: 45 },
+        bowling: { paceOrSpin: 95, accuracy: 95, swingOrTurn: 88, variation: 94, control: 96 },
+        fielding: { catching: 72, throwPower: 76, throwAccuracy: 78, agility: 74 },
+        physical: { stamina: 90, consistency: 94, matchAwareness: 95 },
+        // Major unique effect justified: elite death-overs yorker execution.
+        signature: createAbility(
+            'Death Overs Precision', ABILITY_TRIGGERS.SITUATIONAL,
+            'Final overs: yorker accuracy and control surge.',
+            (ms) => ms.currentOver >= Math.max(0, ms.totalOvers - 3),
+            { yorkerAccuracyAdd: 28, paceAdd: 8, contextualBoost: 10 }
+        ),
+        aiTendency: { deathOverYorkerChance: 0.82, yorkerChance: 0.62, slowerBallChance: 0.22, bouncerChance: 0.16 }
+    },
+    {
+        id: 'samson',
+        name: 'Sanju Samson',
+        country: 'India',
+        role: PLAYER_ROLES.WICKETKEEPER,
+        bowlingStyle: BOWLING_STYLE.NONE,
+        batting: { timing: 84, shotPlacement: 84, power: 86, footwork: 82, composure: 78 },
+        bowling: { paceOrSpin: 8, accuracy: 8, swingOrTurn: 5, variation: 5, control: 8 },
+        fielding: { catching: 84, throwPower: 74, throwAccuracy: 78, agility: 82 },
+        physical: { stamina: 84, consistency: 76, matchAwareness: 78 },
+        signature: createAbility(
+            'Powerplay Intent', ABILITY_TRIGGERS.SITUATIONAL,
+            'Slight attacking edge in first 2 overs.',
+            (ms) => ms.currentOver < 2,
+            { timingAdd: 5, powerAdd: 6 }
+        ),
+        aiTendency: { aggression: 0.72, startSlow: false, accelerateAfterBalls: 8, preferredSide: 'offside', loftedChance: 0.30 }
+    },
+    {
+        id: 'sarfaraz',
+        name: 'Muhammad Sarfaraz',
+        country: 'Pakistan',
+        role: PLAYER_ROLES.WICKETKEEPER,
+        bowlingStyle: BOWLING_STYLE.NONE,
+        batting: { timing: 76, shotPlacement: 80, power: 64, footwork: 74, composure: 82 },
+        bowling: { paceOrSpin: 8, accuracy: 8, swingOrTurn: 6, variation: 5, control: 8 },
+        fielding: { catching: 86, throwPower: 70, throwAccuracy: 80, agility: 78 },
+        physical: { stamina: 82, consistency: 78, matchAwareness: 84 },
+        signature: null,
+        aiTendency: { aggression: 0.44, startSlow: true, rotateStrike: true, accelerateAfterBalls: 24, preferredSide: 'balanced' }
+    },
+    {
+        id: 'chris_green',
+        name: 'Chris Green',
+        country: 'Australia',
+        role: PLAYER_ROLES.BOWLER,
+        bowlingStyle: BOWLING_STYLE.SPIN_OFF,
+        batting: { timing: 46, shotPlacement: 44, power: 48, footwork: 45, composure: 62 },
+        bowling: { paceOrSpin: 76, accuracy: 86, swingOrTurn: 80, variation: 78, control: 88 },
+        fielding: { catching: 70, throwPower: 66, throwAccuracy: 68, agility: 70 },
+        physical: { stamina: 84, consistency: 82, matchAwareness: 82 },
+        signature: null,
+        aiTendency: { flightedChance: 0.20, armBallChance: 0.20, doosraFrequency: 0.15, aggression: 0.28 }
+    },
+    {
+        id: 'zaman_khan',
+        name: 'Zaman Khan',
+        country: 'Pakistan',
+        role: PLAYER_ROLES.BOWLER,
+        bowlingStyle: BOWLING_STYLE.PACE,
+        batting: { timing: 30, shotPlacement: 26, power: 40, footwork: 28, composure: 48 },
+        bowling: { paceOrSpin: 88, accuracy: 78, swingOrTurn: 74, variation: 88, control: 76 },
+        fielding: { catching: 62, throwPower: 72, throwAccuracy: 70, agility: 74 },
+        physical: { stamina: 86, consistency: 74, matchAwareness: 76 },
+        signature: null,
+        aiTendency: { deathOverYorkerChance: 0.66, yorkerChance: 0.54, slowerBallChance: 0.34, bouncerChance: 0.14 }
+    },
+    {
+        id: 'finn_allen',
+        name: 'Finn Allen',
+        country: 'New Zealand',
+        role: PLAYER_ROLES.BATTER,
+        bowlingStyle: BOWLING_STYLE.NONE,
+        batting: { timing: 76, shotPlacement: 72, power: 90, footwork: 74, composure: 66 },
+        bowling: { paceOrSpin: 8, accuracy: 8, swingOrTurn: 5, variation: 5, control: 8 },
+        fielding: { catching: 72, throwPower: 70, throwAccuracy: 68, agility: 78 },
+        physical: { stamina: 84, consistency: 68, matchAwareness: 72 },
+        signature: null,
+        aiTendency: { aggression: 0.84, startSlow: false, accelerateAfterBalls: 0, preferredSide: 'legside', loftedChance: 0.36 }
+    },
+    {
+        id: 'seifert',
+        name: 'Tim Seifert',
+        country: 'New Zealand',
+        role: PLAYER_ROLES.WICKETKEEPER,
+        bowlingStyle: BOWLING_STYLE.NONE,
+        batting: { timing: 78, shotPlacement: 74, power: 82, footwork: 76, composure: 70 },
+        bowling: { paceOrSpin: 8, accuracy: 8, swingOrTurn: 5, variation: 5, control: 8 },
+        fielding: { catching: 82, throwPower: 72, throwAccuracy: 76, agility: 80 },
+        physical: { stamina: 82, consistency: 72, matchAwareness: 74 },
+        signature: null,
+        aiTendency: { aggression: 0.68, startSlow: false, accelerateAfterBalls: 10, preferredSide: 'balanced', loftedChance: 0.24 }
+    },
+    {
+        id: 'ferguson',
+        name: 'Lockie Ferguson',
+        country: 'New Zealand',
+        role: PLAYER_ROLES.BOWLER,
+        bowlingStyle: BOWLING_STYLE.PACE,
+        batting: { timing: 28, shotPlacement: 24, power: 42, footwork: 26, composure: 46 },
+        bowling: { paceOrSpin: 96, accuracy: 76, swingOrTurn: 72, variation: 82, control: 74 },
+        fielding: { catching: 64, throwPower: 80, throwAccuracy: 74, agility: 72 },
+        physical: { stamina: 86, consistency: 72, matchAwareness: 76 },
+        signature: null,
+        aiTendency: { bouncerChance: 0.36, yorkerChance: 0.28, slowerBallChance: 0.18, newBallAggression: 0.82 }
+    },
+    {
+        id: 'shadab',
+        name: 'Shadab Khan',
+        country: 'Pakistan',
+        role: PLAYER_ROLES.ALL_ROUNDER,
+        bowlingStyle: BOWLING_STYLE.SPIN_LEG,
+        batting: { timing: 76, shotPlacement: 74, power: 78, footwork: 78, composure: 76 },
+        bowling: { paceOrSpin: 84, accuracy: 82, swingOrTurn: 86, variation: 88, control: 84 },
+        fielding: { catching: 86, throwPower: 80, throwAccuracy: 82, agility: 88 },
+        physical: { stamina: 88, consistency: 80, matchAwareness: 84 },
+        // Major unique effect justified: deceptive leg-spin + pressure utility.
+        signature: createAbility(
+            'Deceptive Leg-Spin Engine', ABILITY_TRIGGERS.SITUATIONAL,
+            'Under pressure, gains turn and control.',
+            (ms) => ms.pressure > 0.45 || ms.currentOver >= Math.max(0, ms.totalOvers - 4),
+            { turnAdd: 14, contextualBoost: 10 }
+        ),
+        aiTendency: { aggression: 0.58, rotateStrike: true, googlyFrequency: 0.26, flightedChance: 0.24, loftedChance: 0.18 }
+    },
+    {
+        id: 'zampa',
+        name: 'Adam Zampa',
+        country: 'Australia',
+        role: PLAYER_ROLES.BOWLER,
+        bowlingStyle: BOWLING_STYLE.SPIN_LEG,
+        batting: { timing: 34, shotPlacement: 30, power: 42, footwork: 34, composure: 52 },
+        bowling: { paceOrSpin: 86, accuracy: 84, swingOrTurn: 90, variation: 92, control: 86 },
+        fielding: { catching: 70, throwPower: 68, throwAccuracy: 70, agility: 74 },
+        physical: { stamina: 84, consistency: 84, matchAwareness: 86 },
+        // Major unique effect justified: elite leg-spin deception package.
+        signature: createAbility(
+            'Googly Trap', ABILITY_TRIGGERS.PASSIVE,
+            'Leg-spin deception boosted all innings.',
+            () => true,
+            { turnAdd: 12, googlyAccuracyAdd: 18 }
+        ),
+        aiTendency: { googlyFrequency: 0.32, flipperChance: 0.14, flightedChance: 0.28, aggression: 0.30 }
+    },
+    {
+        id: 'pollard',
+        name: 'Kieron Pollard',
+        country: 'West Indies',
+        role: PLAYER_ROLES.ALL_ROUNDER,
+        bowlingStyle: BOWLING_STYLE.MEDIUM,
+        batting: { timing: 80, shotPlacement: 74, power: 98, footwork: 70, composure: 84 },
+        bowling: { paceOrSpin: 72, accuracy: 70, swingOrTurn: 62, variation: 70, control: 70 },
+        fielding: { catching: 84, throwPower: 90, throwAccuracy: 82, agility: 76 },
+        physical: { stamina: 86, consistency: 74, matchAwareness: 82 },
+        // Major unique effect justified: elite death-over hitting profile.
+        signature: createAbility(
+            'Death-Over Demolisher', ABILITY_TRIGGERS.SITUATIONAL,
+            'Finishing phase power and six conversion spike.',
+            (ms) => ms.currentOver >= Math.max(0, ms.totalOvers - 4),
+            { powerAdd: 20, sixDistanceMult: 1.20, loftedTimingMult: 1.12 }
+        ),
+        aiTendency: { aggression: 0.82, finisherMode: true, loftedChance: 0.46, preferredSide: 'legside', slowerBallChance: 0.20 }
+    },
+    {
+        id: 'umar_gul',
+        name: 'Umar Gul',
+        country: 'Pakistan',
+        role: PLAYER_ROLES.BOWLER,
+        bowlingStyle: BOWLING_STYLE.PACE,
+        batting: { timing: 28, shotPlacement: 24, power: 40, footwork: 24, composure: 48 },
+        bowling: { paceOrSpin: 90, accuracy: 88, swingOrTurn: 80, variation: 92, control: 88 },
+        fielding: { catching: 60, throwPower: 72, throwAccuracy: 68, agility: 66 },
+        physical: { stamina: 84, consistency: 86, matchAwareness: 88 },
+        // Major unique effect justified: classic death overs wicket specialist.
+        signature: createAbility(
+            'Death Wicket Hunter', ABILITY_TRIGGERS.SITUATIONAL,
+            'Late overs: yorkers and variation become lethal.',
+            (ms) => ms.currentOver >= Math.max(0, ms.totalOvers - 4),
+            { yorkerAccuracyAdd: 24, contextualBoost: 12 }
+        ),
+        aiTendency: { deathOverYorkerChance: 0.74, yorkerChance: 0.58, slowerBallChance: 0.38, bouncerChance: 0.18 }
+    },
+    {
+        id: 'lendl_simmons',
+        name: 'Lendl Simmons',
+        country: 'West Indies',
+        role: PLAYER_ROLES.BATTER,
+        bowlingStyle: BOWLING_STYLE.MEDIUM,
+        batting: { timing: 80, shotPlacement: 80, power: 78, footwork: 76, composure: 78 },
+        bowling: { paceOrSpin: 48, accuracy: 42, swingOrTurn: 34, variation: 38, control: 44 },
+        fielding: { catching: 72, throwPower: 70, throwAccuracy: 70, agility: 74 },
+        physical: { stamina: 84, consistency: 76, matchAwareness: 78 },
+        signature: null,
+        aiTendency: { aggression: 0.58, startSlow: false, accelerateAfterBalls: 14, preferredSide: 'balanced', rotateStrike: true }
+    },
+    {
+        id: 'marco_jansen',
+        name: 'Marco Jansen',
+        country: 'South Africa',
+        role: PLAYER_ROLES.ALL_ROUNDER,
+        bowlingStyle: BOWLING_STYLE.PACE,
+        batting: { timing: 66, shotPlacement: 62, power: 72, footwork: 64, composure: 70 },
+        bowling: { paceOrSpin: 88, accuracy: 78, swingOrTurn: 82, variation: 76, control: 80 },
+        fielding: { catching: 74, throwPower: 78, throwAccuracy: 74, agility: 70 },
+        physical: { stamina: 90, consistency: 76, matchAwareness: 78 },
+        signature: createAbility(
+            'Hit-the-Deck Bounce', ABILITY_TRIGGERS.SITUATIONAL,
+            'Pace utility rises slightly in first spell.',
+            (ms) => ms.currentOver < 6,
+            { paceAdd: 6, contextualBoost: 4 }
+        ),
+        aiTendency: { newBallAggression: 0.70, bouncerChance: 0.28, yorkerChance: 0.22, slowerBallChance: 0.16 }
     }
 ];
 
@@ -336,6 +610,36 @@ const TEAMS = {
         name: 'Pace Attack XI',
         color: '#DC143C',
         players: ['gayle', 'lara', 'kohli', 'devilliers', 'dhoni', 'kallis', 'afridi', 'akram', 'steyn', 'malinga', 'warne']
+    },
+    modern_t20_xi: {
+        name: 'Modern T20 XI',
+        color: '#16A34A',
+        players: ['finn_allen', 'banton', 'samson', 'pollard', 'holder', 'shadab', 'seifert', 'bumrah', 'amir', 'zampa', 'ferguson']
+    },
+    death_specialists: {
+        name: 'Death Specialists',
+        color: '#B91C1C',
+        players: ['pollard', 'dhoni', 'holder', 'shadab', 'umar_gul', 'bumrah', 'zaman_khan', 'malinga', 'steyn', 'marco_jansen', 'amir']
+    },
+    spin_attack: {
+        name: 'Spin Attack XI',
+        color: '#7C3AED',
+        players: ['sangakkara', 'kohli', 'lara', 'shakib', 'shadab', 'afridi', 'warne', 'murali', 'zampa', 'chris_green', 'dhoni']
+    },
+    explosive_openers: {
+        name: 'Explosive Openers XI',
+        color: '#EA580C',
+        players: ['gayle', 'finn_allen', 'banton', 'lendl_simmons', 'samson', 'pollard', 'holder', 'ferguson', 'bumrah', 'zaman_khan', 'zampa']
+    },
+    pakistan_t20_mix: {
+        name: 'Pakistan T20 Mix',
+        color: '#15803D',
+        players: ['sarfaraz', 'amir', 'shadab', 'zaman_khan', 'umar_gul', 'afridi', 'akram', 'lendl_simmons', 'samson', 'kohli', 'warne']
+    },
+    franchise_power_xi: {
+        name: 'Franchise Power XI',
+        color: '#0EA5E9',
+        players: ['finn_allen', 'gayle', 'devilliers', 'pollard', 'samson', 'banton', 'holder', 'shadab', 'bumrah', 'ferguson', 'zampa']
     }
 };
 

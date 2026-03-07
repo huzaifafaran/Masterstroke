@@ -36,6 +36,9 @@ class CommentarySystem {
             lines.push(this.runLine(ballResult, batter, bowler, matchContext));
         }
 
+        const timingLabel = this.timingQualityLine(ballResult);
+        if (timingLabel) lines.push(timingLabel);
+
         const milestoneLine = this.checkMilestones(matchContext, batter);
         if (milestoneLine) lines.push(milestoneLine);
 
@@ -283,6 +286,53 @@ class CommentarySystem {
         if (raw.includes('hit wicket')) return 'hit_wicket';
 
         return raw || 'generic';
+    }
+
+    timingQualityLine(result) {
+        const grade = (result.timingDetail || result.timing || '').toLowerCase();
+        if (!grade) return null;
+
+        if (grade === 'perfect' && !this.maybe(0.35)) return null;
+        if (grade === 'good' && !this.maybe(0.22)) return null;
+        if ((grade === 'early' || grade === 'late') && !this.maybe(0.20)) return null;
+        if ((grade === 'very_early' || grade === 'very_late') && !this.maybe(0.45)) return null;
+
+        const table = {
+            perfect: [
+                `Timing grade: PERFECT. That was elite contact timing.`,
+                `PERFECT timing there, almost no margin for error.`,
+                `That lands in the PERFECT window, top-level execution.`
+            ],
+            good: [
+                `Timing grade: GOOD. Solid bat-to-ball connection.`,
+                `GOOD timing from the batter, controlled execution.`,
+                `That is in the GOOD band, reliable contact.`
+            ],
+            early: [
+                `Timing grade: EARLY. Contact was slightly in front of ideal.`,
+                `A touch EARLY on that stroke, control drops off.`,
+                `EARLY timing there, so the shot loses precision.`
+            ],
+            late: [
+                `Timing grade: LATE. The batter met it behind ideal.`,
+                `A fraction LATE on contact, making control harder.`,
+                `LATE timing there, and that changes the outcome profile.`
+            ],
+            very_early: [
+                `Timing grade: VERY EARLY. High-risk mis-hit territory.`,
+                `Very early contact, and that is where wickets can appear.`,
+                `VERY EARLY timing, difficult to control that shot.`
+            ],
+            very_late: [
+                `Timing grade: VERY LATE. Serious mistime risk.`,
+                `Very late contact, a dangerous outcome band.`,
+                `VERY LATE timing there, and the control is compromised.`
+            ]
+        };
+
+        const pool = table[grade];
+        if (!pool || pool.length === 0) return null;
+        return this.pick(pool);
     }
 
     // =========================================================

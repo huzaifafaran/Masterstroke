@@ -10,19 +10,35 @@ class VsAIModeController {
         
         this.humanTeamId = null;
         this.humanRole = null; // 'bat' or 'bowl'
+        this.humanTeam = null;
+        this.aiTeam = null;
+        this.humanBatsFirst = null;
+    }
+
+    didHumanBatInCurrentInnings() {
+        if (this.gc.phase === 'batting_human') return true;
+        if (this.gc.phase === 'bowling_human') return false;
+        return this.engine.battingTeam === this.humanTeam;
     }
 
     start(config) {
         this.config = config;
         this.humanTeamId = config.humanTeamId;
+        this.humanTeam = this.humanTeamId === 'team1' ? this.engine.team1 : this.engine.team2;
+        this.aiTeam = this.humanTeamId === 'team1' ? this.engine.team2 : this.engine.team1;
 
         this.gc.emit('matchStart', { config });
         this.performToss();
     }
 
     performToss() {
-        const tossResult = this.engine.simulateToss();
-        const humanWonToss = tossResult.winner === 'team1';
+        // Do not call engine.simulateToss() here, it mutates team order immediately.
+        const tossResult = {
+            winner: Math.random() > 0.5 ? 'team1' : 'team2',
+            choice: null
+        };
+        this.engine.tossWinner = tossResult.winner;
+        const humanWonToss = tossResult.winner === this.humanTeamId;
         
         this.gc.emit('tossComplete', tossResult);
 
@@ -38,7 +54,7 @@ class VsAIModeController {
 
     setTossChoice(choice, isHumanChoice) {
         // choice: 'bat' or 'bowl'
-        this.engine.tossWinner = isHumanChoice ? 'team1' : 'team2';
+        this.engine.tossWinner = isHumanChoice ? this.humanTeamId : (this.humanTeamId === 'team1' ? 'team2' : 'team1');
         this.engine.tossChoice = choice;
 
         if (isHumanChoice) {
@@ -46,11 +62,10 @@ class VsAIModeController {
         } else {
             this.humanRole = (choice === 'bat') ? 'bowl' : 'bat';
         }
+        this.humanBatsFirst = this.humanRole === 'bat';
 
-        // Configure engine innings 1
-        if (this.humanRole === 'bowl') {
-            this.engine.swapTeams();
-        }
+        // Configure teams deterministically for innings 1.
+        this.applyRoleTeams();
 
         this.gc.emit('tossDecisionFinal', { 
             winner: isHumanChoice ? 'Player' : 'AI',
@@ -61,9 +76,26 @@ class VsAIModeController {
         setTimeout(() => this.startInnings(), 2000);
     }
 
+    applyRoleTeams() {
+        if (this.humanBatsFirst) {
+            this.engine.battingTeam = this.humanTeam;
+            this.engine.bowlingTeam = this.aiTeam;
+        } else {
+            this.engine.battingTeam = this.aiTeam;
+            this.engine.bowlingTeam = this.humanTeam;
+        }
+    }
+
     startInnings() {
         this.engine.startInnings();
-        
+
+        // Resolve role deterministically from toss outcome + innings number.
+        // This avoids false positives when both teams share some player IDs.
+        if (this.engine.innings === 1) {
+            this.humanRole = this.humanBatsFirst ? 'bat' : 'bowl';
+        } else {
+            this.humanRole = this.humanBatsFirst ? 'bowl' : 'bat';
+        }
         const phase = this.humanRole === 'bat' ? 'batting_human' : 'bowling_human';
         this.gc.setPhase(phase);
 
@@ -97,16 +129,27 @@ class VsAIModeController {
             target: this.engine.state.runs + 1
         });
 
+        // Determine innings-1 role from actual live phase, not toss assumptions.
+        const humanBattedInningsOne = this.didHumanBatInCurrentInnings();
+        this.humanBatsFirst = humanBattedInningsOne;
+
         this.engine.innings = 2;
         this.engine.target = this.engine.state.runs + 1;
-        
-        // Swap teams
-        this.engine.swapTeams();
-        this.humanRole = (this.humanRole === 'bat') ? 'bowl' : 'bat';
 
+        // Second innings team assignment from toss outcome.
+        if (humanBattedInningsOne) {
+            this.engine.battingTeam = this.aiTeam;
+            this.engine.bowlingTeam = this.humanTeam;
+        } else {
+            this.engine.battingTeam = this.humanTeam;
+            this.engine.bowlingTeam = this.aiTeam;
+        }
+
+        // In super-over, switch immediately after over completion.
+        const inningsBreakMs = this.engine.totalOvers === 1 ? 600 : 1800;
         setTimeout(() => {
             this.startInnings();
-        }, 5000); // 5 sec innings break
+        }, inningsBreakMs);
     }
 
     endMatch() {

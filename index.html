@@ -36,7 +36,7 @@
                 </button>
             </div>
 
-            <div class="menu-version">v1.0 — 16 LEGENDARY PLAYERS</div>
+            <div class="menu-version">v1.1 - 32 PLAYER ROSTER</div>
         </div>
 
         <!-- ═══════ SETUP SCREEN ═══════ -->
@@ -72,7 +72,16 @@
                         <option value="hard">Hard</option>
                     </select>
                 </div>
+                <div class="setup-lineup">
+                    <h3>Your Batting Order</h3>
+                    <div id="batting-order-list" class="lineup-list"></div>
+                </div>
 
+                <div class="setup-lineup">
+                    <h3>Your Bowling Rotation</h3>
+                    <div id="bowling-order-list" class="lineup-list"></div>
+                    <p class="lineup-note">Only specialist bowlers and all-rounders are listed. Order defines preferred over rotation.</p>
+                </div>
                 <div class="setup-actions">
                     <button id="btn-back-menu">← Back</button>
                     <button id="btn-start-match"><span class="black-emoji">🏏</span> Start Match</button>
@@ -82,6 +91,14 @@
 
         <!-- ═══════ GAME SCREEN ═══════ -->
         <div id="game-screen" class="screen">
+            <div id="rotate-hint" class="rotate-hint">
+                Rotate to landscape for best gameplay experience.
+            </div>
+            <div id="debug-overlay" class="debug-overlay">
+                <div class="debug-title">DEBUG MODE</div>
+                <div id="debug-state" class="debug-state">state: -</div>
+                <div id="debug-log" class="debug-log"></div>
+            </div>
             <div class="game-layout">
                 <!-- Scoreboard Bar -->
                 <div class="scoreboard-bar">
@@ -106,14 +123,24 @@
                         </div>
                     </div>
 
+                    <div class="mobile-panel-toggles">
+                        <button id="btn-toggle-info" type="button" class="mobile-toggle-btn">Info</button>
+                        <button id="btn-toggle-commentary" type="button" class="mobile-toggle-btn">Commentary</button>
+                    </div>
+
                     <div id="target-info" class="hidden"></div>
                 </div>
 
                 <!-- Left Panel: Player Info -->
                 <div class="left-panel">
+                    <div class="mobile-panel-header">
+                        <span>Match Info</span>
+                        <button id="btn-close-info" type="button" class="mobile-panel-close">Close</button>
+                    </div>
+
                     <div class="player-card batter">
                         <div class="name">
-                            <span class="black-emoji">🏏</span> <span id="batter-name">—</span>
+                            <span class="black-emoji">*</span> <span id="batter-name">—</span>
                         </div>
                         <div class="stats" id="batter-stats">0 (0)</div>
                         <div class="ability-badge" id="ability-status"></div>
@@ -128,7 +155,7 @@
 
                     <div class="player-card bowler">
                         <div class="name">
-                            <span class="black-emoji">🎯</span> <span id="bowler-name">—</span>
+                            <span class="black-emoji">*</span> <span id="bowler-name">—</span>
                         </div>
                         <div class="stats" id="bowler-stats">0-0 (0)</div>
                     </div>
@@ -152,15 +179,31 @@
                         style="opacity: 0"
                     >
                     </div>
+                    <div id="timing-landing-feedback" class="timing-landing-feedback hidden">
+                        <div class="timing-landing-title">TIMING LANDING</div>
+                        <div class="timing-landing-bar">
+                            <div class="timing-landing-zone timing-landing-zone-very-early">VE</div>
+                            <div class="timing-landing-zone timing-landing-zone-early">E</div>
+                            <div class="timing-landing-zone timing-landing-zone-good">G</div>
+                            <div class="timing-landing-zone timing-landing-zone-perfect">P</div>
+                            <div class="timing-landing-zone timing-landing-zone-late">L</div>
+                            <div class="timing-landing-zone timing-landing-zone-very-late">VL</div>
+                            <div id="timing-landing-marker" class="timing-landing-marker"></div>
+                        </div>
+                        <div id="timing-landing-text" class="timing-landing-text">PERFECT</div>
+                    </div>
                     <div id="delivery-info"></div>
 
                     <!-- Timing Bar Overlay -->
                     <div id="timing-bar-overlay" class="timing-bar-overlay hidden">
                         <div class="timing-bar-label">SELECT A SHOT FIRST</div>
                         <div class="timing-bar-container">
-                            <div class="timing-zone timing-zone-early">EARLY</div>
-                            <div class="timing-zone timing-zone-perfect">PERFECT</div>
-                            <div class="timing-zone timing-zone-late">LATE</div>
+                            <div class="timing-zone timing-zone-very-early">VE</div>
+                            <div class="timing-zone timing-zone-early">E</div>
+                            <div class="timing-zone timing-zone-good">G</div>
+                            <div class="timing-zone timing-zone-perfect">P</div>
+                            <div class="timing-zone timing-zone-late">L</div>
+                            <div class="timing-zone timing-zone-very-late">VL</div>
                             <div class="timing-bar-cursor" id="timing-bar-cursor"></div>
                         </div>
                         <button id="btn-play-shot" class="btn-play-shot"><span class="black-emoji">⚡</span> PLAY SHOT</button>
@@ -183,6 +226,10 @@
 
                 <!-- Right Panel: Commentary -->
                 <div class="right-panel">
+                    <div class="mobile-panel-header">
+                        <span>Live Commentary</span>
+                        <button id="btn-close-commentary" type="button" class="mobile-panel-close">Close</button>
+                    </div>
                     <div class="panel-title">Live Commentary</div>
                     <div id="commentary-feed"></div>
                 </div>
@@ -252,3 +299,5 @@
         </div>
     </body>
 </html>
+
+

@@ -38,8 +38,8 @@ const CONTACT_FACTORS = {
     miss:  { power: 0.02, control: 0.08, elevation: -8 },
     edge:  { power: 0.42, control: 0.35, elevation: 6 },
     weak:  { power: 0.62, control: 0.56, elevation: 0 },
-    clean: { power: 0.95, control: 0.88, elevation: 2 },
-    sweet: { power: 1.16, control: 1.02, elevation: 4 }
+    clean: { power: 1, control: 0.88, elevation: 2 },
+    sweet: { power: 1.56, control: 1.02, elevation: 4 }
 };
 
 const DEFAULT_MATCHUP_PROFILE = {
@@ -93,18 +93,37 @@ class BattingSystem {
     // ------------------------------------------------------------
     startTimingSequence(delivery, selectedShot) {
         const batter = this.engine.getCurrentBatter();
+        const bowler = this.engine.getCurrentBowler();
+        const matchContext = this.engine.getMatchContext();
         const baseZones = this.engine.getTimingWindow(batter);
         const shot = selectedShot || this.selectedShot || SHOT_TYPES[1];
+        const batterAttrs = this.engine.getEffectiveAttributes(batter, 'batting');
+        const bowlerAttrs = this.engine.getEffectiveAttributes(bowler, 'bowling');
         this.selectedShot = shot;
 
-        this.timingZones = this.getZonesForShot(baseZones, shot);
+        const matchupScore = this.calculateShotMatchup(shot, delivery);
+        this.timingZones = this.calculateDynamicTimingZones({
+            batter,
+            bowler,
+            delivery,
+            shot,
+            matchContext,
+            batterAttrs,
+            bowlerAttrs,
+            baseWindow: baseZones,
+            matchupScore
+        });
 
         const rawSpeed = delivery?.speed ?? this.engine.getCurrentBowler()?.bowling?.paceOrSpin ?? 80;
-        const speedNorm = this.clamp((rawSpeed - 70) / 90, 0, 1);
+        const speedNorm = this.clamp((rawSpeed) / 90, 0, 1);
         const deliveryDifficulty = this.clamp(delivery?.difficulty ?? 0.35, 0, 1);
+        const pressure = this.clamp(matchContext?.pressure ?? this.engine.calculatePressure(), 0, 1);
+        const movement = this.getMovementMagnitude(delivery);
 
-        this.timingBarSpeed = 2.2 + speedNorm * 3.6 + deliveryDifficulty * 1.2;
+        this.timingBarSpeed = 2.2 + speedNorm * 3.6 + deliveryDifficulty * 0.12;
+        this.timingBarSpeed += pressure * 0.7 + movement * 0.35;
         if (shot.risk > 0.3) this.timingBarSpeed *= 1 + shot.risk * 0.35;
+        if (batterAttrs?.timing) this.timingBarSpeed *= this.clamp(1.12 - (batterAttrs.timing*100) / 520, 0.84, 1.15);
 
         this.timingBarActive = true;
         this.timingBarPosition = 0;
@@ -115,56 +134,340 @@ class BattingSystem {
     }
 
     getZonesForShot(baseZones, shot) {
-        if (!shot || !baseZones) return baseZones;
+        return this.calculateDynamicTimingZones({
+            batter: this.engine.getCurrentBatter(),
+            bowler: this.engine.getCurrentBowler(),
+            delivery: this.currentDelivery,
+            shot: shot || this.selectedShot || SHOT_TYPES[1],
+            matchContext: this.engine.getMatchContext(),
+            batterAttrs: this.engine.getEffectiveAttributes(this.engine.getCurrentBatter(), 'batting'),
+            bowlerAttrs: this.engine.getEffectiveAttributes(this.engine.getCurrentBowler(), 'bowling'),
+            baseWindow: baseZones || this.engine.getTimingWindow(this.engine.getCurrentBatter()),
+            matchupScore: this.calculateShotMatchup(shot || this.selectedShot || SHOT_TYPES[1], this.currentDelivery)
+        });
+    }
 
-        const total = Math.max(80, baseZones.total || 200);
-        const risk = this.clamp(shot.risk || 0.2, 0, 0.8);
-        const perfectMult = {
-            defensive: 1.55,
-            drive: 1.05,
-            pull: 0.95,
-            sweep: 0.90,
-            cut: 1.00,
-            lofted: 0.62,
-            scoop: 0.50,
-            switch_hit: 0.50
-        }[shot.id] || 1.0;
+    calculateDynamicTimingZones({
+        batter,
+        bowler,
+        delivery,
+        shot,
+        matchContext,
+        batterAttrs,
+        bowlerAttrs,
+        baseWindow,
+        matchupScore
+    }) {
+        const total = this.clamp(baseWindow?.total || 200, 120, 290);
+        const pressure = this.clamp(matchContext?.pressure ?? this.engine.calculatePressure(), 0, 1);
+        const movement = this.getMovementMagnitude(delivery);
+        const deliveryDifficulty = this.clamp(delivery?.difficulty ?? 0.35, 0, 1);
+        const risk = this.clamp(shot?.risk ?? 0.2, 0, 0.8);
+        const matchup = this.clamp(matchupScore ?? this.calculateShotMatchup(shot, delivery), 0.15, 1.95);
 
-        const perfect = this.clamp(baseZones.perfect * perfectMult, total * 0.10, total * 0.72);
-        const side = (total - perfect) / 2;
-        const goodSlice = this.clamp(side * (0.34 - risk * 0.08), side * 0.18, side * 0.40);
-        const earlySlice = side * 0.36;
-        const verySlice = Math.max(0, side - goodSlice - earlySlice);
+        const battingSkill = this.clamp(
+            (
+                (batterAttrs?.timing ?? 50) * 0.46 +
+                (batterAttrs?.footwork ?? 50) * 0.18 +
+                (batterAttrs?.composure ?? 50) * 0.16 +
+                (batterAttrs?.shotPlacement ?? 50) * 0.12 +
+                (batter?.physical?.matchAwareness ?? 50) * 0.08
+            ) / 100,
+            0.20,
+            1.20
+        );
+        const bowlingThreat = this.clamp(
+            (
+                (bowlerAttrs?.accuracy ?? 50) * 0.30 +
+                (bowlerAttrs?.variation ?? 50) * 0.26 +
+                (bowlerAttrs?.paceOrSpin ?? 50) * 0.20 +
+                (bowlerAttrs?.swingOrTurn ?? 50) * 0.24
+            ) / 100,
+            0.20,
+            1.20
+        );
+        const composure = this.clamp((batterAttrs?.composure ?? 50) / 100, 0, 1);
+
+        // Baseline distribution for six grades.
+        const zonePct = {
+            veryEarly: 24,
+            early: 16,
+            good: 14,
+            perfect: 6,
+            late: 16,
+            veryLate: 24
+        };
+
+        // 1) Batter skill: better batters widen reward windows and trim penalties.
+        const batterEdge = battingSkill - 0.50;
+        zonePct.perfect += batterEdge * 4.4;
+        zonePct.good += batterEdge * 6.2;
+        zonePct.early -= batterEdge * 2.4;
+        zonePct.late -= batterEdge * 2.4;
+        zonePct.veryEarly -= batterEdge * 2.9;
+        zonePct.veryLate -= batterEdge * 2.9;
+
+        // 2) Bowler skill: elite bowlers compress reward windows and increase mistime bands.
+        const bowlerEdge = bowlingThreat - 0.50;
+        zonePct.perfect -= bowlerEdge * 4.9;
+        zonePct.good -= bowlerEdge * 5.8;
+        zonePct.early += bowlerEdge * 2.6;
+        zonePct.late += bowlerEdge * 2.6;
+        zonePct.veryEarly += bowlerEdge * 2.75;
+        zonePct.veryLate += bowlerEdge * 2.75;
+
+        // 3) Delivery difficulty/movement: difficult balls tighten windows.
+        const deliveryTighten = deliveryDifficulty * 4.8 + movement * 2.1;
+        zonePct.perfect -= deliveryTighten * 1.05;
+        zonePct.good -= deliveryTighten * 1.18;
+        zonePct.early += deliveryTighten * 0.72;
+        zonePct.late += deliveryTighten * 0.72;
+        zonePct.veryEarly += deliveryTighten * 0.78;
+        zonePct.veryLate += deliveryTighten * 0.78;
+
+        // Delivery behavior can asymmetrically bias mistimes to early/late sides.
+        const behavior = this.getDeliveryTimingBehavior(delivery);
+        const lateLean = this.clamp((behavior.lateRisk - behavior.earlyRisk) * (0.95 + movement * 0.25), -1.30, 1.30);
+        zonePct.early -= lateLean * 2.3;
+        zonePct.veryEarly -= lateLean * 1.6;
+        zonePct.late += lateLean * 2.3;
+        zonePct.veryLate += lateLean * 1.6;
+
+        // 4) Shot difficulty/risk: risky shots should tighten perfect/good timing.
+        const shotDifficulty = this.getShotTimingDifficulty(shot);
+        const shotPenalty = shotDifficulty * (0.8 + risk * 0.85);
+        zonePct.perfect -= shotPenalty * 3.2;
+        zonePct.good -= shotPenalty * 3.9;
+        zonePct.early += shotPenalty * 1.75;
+        zonePct.late += shotPenalty * 1.75;
+        zonePct.veryEarly += shotPenalty * 1.8;
+        zonePct.veryLate += shotPenalty * 1.8;
+
+        // 5) Shot-ball matchup: good matchup expands reward windows, bad matchup collapses them.
+        const matchupEdge = matchup - 1.0;
+        zonePct.perfect += matchupEdge * 5.0;
+        zonePct.good += matchupEdge * 6.4;
+        zonePct.early -= matchupEdge * 2.7;
+        zonePct.late -= matchupEdge * 2.7;
+        zonePct.veryEarly -= matchupEdge * 3.0;
+        zonePct.veryLate -= matchupEdge * 3.0;
+
+        // 6) Match pressure with composure resistance.
+        const pressurePenalty = pressure * (1 - composure * 0.72);
+        zonePct.perfect -= pressurePenalty * 4.0;
+        zonePct.good -= pressurePenalty * 3.3;
+        zonePct.early += pressurePenalty * 2.0;
+        zonePct.late += pressurePenalty * 2.0;
+        zonePct.veryEarly += pressurePenalty * 1.65;
+        zonePct.veryLate += pressurePenalty * 1.65;
+
+        // 7) Signature-specific window shaping.
+        this.applyTimingAbilityModifiers(zonePct, batter, shot, matchContext);
+
+        // 8) Clamp and rebalance to keep windows valid and stable.
+        this.stabilizeTimingPercentages(zonePct);
+
+        const zones = this.percentagesToTimingZones(zonePct, total);
+        zones.meta = {
+            batterSkill: battingSkill,
+            bowlerThreat: bowlingThreat,
+            deliveryDifficulty: deliveryDifficulty,
+            movement: movement,
+            matchup: matchup,
+            pressure: pressure
+        };
+        return zones;
+    }
+
+    applyTimingAbilityModifiers(zonePct, batter, shot, matchContext) {
+        // Defensive shot: intentionally wider perfect window for reliable blocks.
+        if (shot?.id === 'defensive') {
+            const lift = 2.4;
+            zonePct.perfect += lift;
+            zonePct.good += lift * 0.70;
+            zonePct.early -= lift * 0.65;
+            zonePct.late -= lift * 0.65;
+            zonePct.veryEarly -= lift * 0.20;
+            zonePct.veryLate -= lift * 0.20;
+        }
+
+        if (!batter) return;
+
+        // AB de Villiers: innovative shots retain more timing access.
+        if (shot?.category === 'innovative' && batter?.signature?.modifiers?.innovativeMistimePenaltyMult) {
+            const relief = (1 - this.clamp(batter.signature.modifiers.innovativeMistimePenaltyMult, 0.25, 1.0)) * 4.8;
+            zonePct.good += relief * 0.90;
+            zonePct.perfect += relief * 0.45;
+            zonePct.early -= relief * 0.34;
+            zonePct.late -= relief * 0.34;
+            zonePct.veryEarly -= relief * 0.34;
+            zonePct.veryLate -= relief * 0.34;
+        }
+
+        // Virat Kohli: slightly better perfect timing in pressure chases.
+        if (batter.id === 'kohli' && matchContext?.innings === 2 && matchContext?.target) {
+            const chaseBoost = this.clamp((matchContext.requiredRunRate || 6) / 12, 0.5, 1.1);
+            const lift = 1.2 * chaseBoost;
+            zonePct.perfect += lift;
+            zonePct.good += lift * 0.55;
+            zonePct.early -= lift * 0.55;
+            zonePct.late -= lift * 0.55;
+            zonePct.veryEarly -= lift * 0.23;
+            zonePct.veryLate -= lift * 0.23;
+        }
+
+        // Tendulkar: broader "good" timing for orthodox strokes.
+        if (batter.id === 'tendulkar' && ['defensive', 'drive', 'cut', 'sweep'].includes(shot?.id)) {
+            const lift = 1.6;
+            zonePct.good += lift;
+            zonePct.early -= lift * 0.40;
+            zonePct.late -= lift * 0.40;
+            zonePct.veryEarly -= lift * 0.10;
+            zonePct.veryLate -= lift * 0.10;
+        }
+    }
+
+    getShotTimingDifficulty(shot) {
+        const shotRiskMap = {
+            defensive: 0.08,
+            drive: 0.36,
+            cut: 0.46,
+            pull: 0.52,
+            sweep: 0.54,
+            lofted: 0.72,
+            scoop: 0.82,
+            switch_hit: 0.80
+        };
+        return this.clamp(shotRiskMap[shot?.id] ?? (0.34 + (shot?.risk || 0.2) * 0.8), 0.10, 1.0);
+    }
+
+    getDeliveryTimingBehavior(delivery) {
+        const id = this.getDeliveryId(delivery);
+        const biasMap = {
+            outswing: { lateRisk: 0.95, earlyRisk: 0.10 },
+            inswing: { lateRisk: 0.08, earlyRisk: 0.92 },
+            googly: { lateRisk: 0.64, earlyRisk: 0.48 },
+            doosra: { lateRisk: 0.58, earlyRisk: 0.52 },
+            slower_ball: { lateRisk: 0.28, earlyRisk: 0.82 },
+            yorker: { lateRisk: 0.74, earlyRisk: 0.25 },
+            bouncer: { lateRisk: 0.60, earlyRisk: 0.48 },
+            arm_ball: { lateRisk: 0.22, earlyRisk: 0.56 },
+            flighted: { lateRisk: 0.30, earlyRisk: 0.66 },
+            top_spinner: { lateRisk: 0.54, earlyRisk: 0.30 }
+        };
+        return biasMap[id] || { lateRisk: 0.30, earlyRisk: 0.30 };
+    }
+
+    stabilizeTimingPercentages(zonePct) {
+        const order = ['veryEarly', 'early', 'good', 'perfect', 'late', 'veryLate'];
+        const mins = { veryEarly: 8, early: 10, good: 8, perfect: 4.5, late: 10, veryLate: 8 };
+
+        // Ensure floor values first.
+        order.forEach((k) => {
+            zonePct[k] = Math.max(mins[k], zonePct[k]);
+        });
+
+        // Perfect must remain the smallest zone.
+        const nonPerfectMin = Math.min(zonePct.veryEarly, zonePct.early, zonePct.good, zonePct.late, zonePct.veryLate);
+        if (zonePct.perfect >= nonPerfectMin) {
+            const drop = zonePct.perfect - Math.max(mins.perfect, nonPerfectMin - 0.6);
+            if (drop > 0) {
+                zonePct.perfect -= drop;
+                zonePct.good += drop * 0.55;
+                zonePct.early += drop * 0.225;
+                zonePct.late += drop * 0.225;
+            }
+        }
+
+        // Normalize to 100 while preserving minimums.
+        let total = order.reduce((sum, k) => sum + zonePct[k], 0);
+        if (total > 100) {
+            let excess = total - 100;
+            const flexible = order.filter((k) => zonePct[k] > mins[k] + 0.001);
+            while (excess > 0.001 && flexible.length > 0) {
+                let pool = 0;
+                flexible.forEach((k) => { pool += zonePct[k] - mins[k]; });
+                if (pool <= 0.001) break;
+                flexible.forEach((k) => {
+                    const room = zonePct[k] - mins[k];
+                    const delta = Math.min(room, (room / pool) * excess);
+                    zonePct[k] -= delta;
+                    excess -= delta;
+                });
+            }
+        } else if (total < 100) {
+            const add = 100 - total;
+            zonePct.veryEarly += add * 0.35;
+            zonePct.early += add * 0.15;
+            zonePct.good += add * 0.10;
+            zonePct.late += add * 0.15;
+            zonePct.veryLate += add * 0.25;
+        }
+
+        // Final precision normalization.
+        total = order.reduce((sum, k) => sum + zonePct[k], 0);
+        if (total > 0) {
+            order.forEach((k) => {
+                zonePct[k] = (zonePct[k] / total) * 100;
+            });
+        }
+    }
+
+    percentagesToTimingZones(zonePct, total) {
+        const veryEarly = total * (zonePct.veryEarly / 100);
+        const early = total * (zonePct.early / 100);
+        const good = total * (zonePct.good / 100);
+        const perfect = total * (zonePct.perfect / 100);
+        const late = total * (zonePct.late / 100);
+        let veryLate = total * (zonePct.veryLate / 100);
 
         const bands = [];
         let cursor = 0;
         const addBand = (grade, width) => {
-            bands.push({ grade, start: cursor, end: cursor + width });
-            cursor += width;
+            const safeWidth = Math.max(0.0001, width);
+            bands.push({ grade, start: cursor, end: cursor + safeWidth });
+            cursor += safeWidth;
         };
 
-        addBand('very_early', verySlice);
-        addBand('early', earlySlice);
-        addBand('good', goodSlice);
+        // Required strict order:
+        // [ very early ][ early ][ good ][ perfect ][ late ][ very late ]
+        addBand('very_early', veryEarly);
+        addBand('early', early);
+        addBand('good', good);
         addBand('perfect', perfect);
-        addBand('good', goodSlice);
-        addBand('late', earlySlice);
-        addBand('very_late', verySlice);
+        addBand('late', late);
+        addBand('very_late', veryLate);
+
+        const endDrift = total - cursor;
+        if (bands.length && Math.abs(endDrift) > 0.0001) {
+            bands[bands.length - 1].end += endDrift;
+            veryLate += endDrift;
+        }
 
         return {
             total: total,
+            veryEarly: veryEarly,
+            early: early,
+            good: good,
             perfect: perfect,
-            early: side,
-            late: side,
-            good: goodSlice * 2,
-            veryEarly: verySlice,
-            veryLate: verySlice,
+            late: late,
+            veryLate: veryLate,
             bands: bands
         };
     }
 
     evaluateTiming(position) {
-        const zones = this.timingZones || this.getZonesForShot({ total: 200, perfect: 70 }, this.selectedShot || SHOT_TYPES[1]);
+        const zones = this.timingZones || this.calculateDynamicTimingZones({
+            batter: this.engine.getCurrentBatter(),
+            bowler: this.engine.getCurrentBowler(),
+            delivery: this.currentDelivery,
+            shot: this.selectedShot || SHOT_TYPES[1],
+            matchContext: this.engine.getMatchContext(),
+            batterAttrs: this.engine.getEffectiveAttributes(this.engine.getCurrentBatter(), 'batting'),
+            bowlerAttrs: this.engine.getEffectiveAttributes(this.engine.getCurrentBowler(), 'bowling'),
+            baseWindow: this.engine.getTimingWindow(this.engine.getCurrentBatter()),
+            matchupScore: this.calculateShotMatchup(this.selectedShot || SHOT_TYPES[1], this.currentDelivery)
+        });
         const total = zones.total || 200;
         const posInWindow = (this.clamp(position, 0, 100) / 100) * total;
         const bands = zones.bands || [];
@@ -316,6 +619,18 @@ class BattingSystem {
             context
         });
 
+        // Final guarantee requested by gameplay tuning:
+        // perfect + lofted should never resolve to a dot/wicket path.
+        if (timing.grade === 'perfect' && shot.id === 'lofted' && (field.runs <= 0 || field.wicket)) {
+            field.runs = Math.random() < 0.97 ? 6 : 4;
+            field.wicket = false;
+            field.edge = false;
+            field.dismissal = null;
+            field.description = field.runs === 6
+                ? 'Perfectly timed lofted shot, guaranteed six.'
+                : 'Perfectly timed lofted shot, guaranteed boundary.';
+        }
+
         this.lastShotDiagnostics = {
             timing: timing.grade,
             contactType: contact.type,
@@ -332,6 +647,16 @@ class BattingSystem {
             edge: !!field.edge,
             timing: timing.legacyGrade,      // keeps UI and CSS compatibility
             timingDetail: timing.grade,      // richer output for AI/telemetry
+            timingPosition: this.timingBarPosition,
+            timingZones: this.timingZones ? {
+                total: this.timingZones.total,
+                veryEarly: this.timingZones.veryEarly,
+                early: this.timingZones.early,
+                good: this.timingZones.good,
+                perfect: this.timingZones.perfect,
+                late: this.timingZones.late,
+                veryLate: this.timingZones.veryLate
+            } : null,
             shotType: shot.id,
             deliveryType: this.getDeliveryId(delivery),
             angle: trajectory.angle,
@@ -390,6 +715,14 @@ class BattingSystem {
 
         this.normalizeProbabilityObject(probs);
         let sampledType = this.weightedPick(probs);
+
+        // Hard anti-dot safeguard for perfect-timed attacking strokes.
+        // If player nails perfect on drive/lofted, do not let contact collapse into miss/edge.
+        if (timing.grade === 'perfect' && (shot.id === 'drive' || shot.id === 'lofted')) {
+            if (sampledType === CONTACT_TYPES.MISS || sampledType === CONTACT_TYPES.EDGE || sampledType === CONTACT_TYPES.WEAK) {
+                sampledType = Math.random() < 0.68 ? CONTACT_TYPES.SWEET : CONTACT_TYPES.CLEAN;
+            }
+        }
 
         const edgeChance = this.resolveEdgeChance({
             timing,
@@ -456,6 +789,10 @@ class BattingSystem {
             risk * 0.12 +
             (delivery?.difficulty || 0.35) * 0.12 +
             pressure * 0.05;
+
+        // Perfect/good timing should be substantially safer.
+        if (timing.grade === 'perfect') chance *= 0.18;
+        else if (timing.grade === 'good') chance *= 0.42;
 
         const mitigation = ((batterAttrs.timing || 50) + (batterAttrs.composure || 50)) / 260;
         chance *= (1 - mitigation * 0.55);
@@ -594,6 +931,42 @@ class BattingSystem {
             return this.resolveEdgeOutcome({ trajectory, fieldDensity, zone, delivery });
         }
 
+        // Perfect timing should be heavily rewarding:
+        // - almost guaranteed boundary on attacking shots
+        // - lofted + perfect should almost always clear the rope
+        if (timing.grade === 'perfect' && shot.id !== 'defensive' && contact.type !== CONTACT_TYPES.MISS) {
+            if (shot.id === 'lofted') {
+                if (Math.random() < 0.97) {
+                    return { runs: 6, wicket: false, edge: false, dismissal: null, description: 'Perfectly timed lofted shot, sails for six.' };
+                }
+                return { runs: 4, wicket: false, edge: false, dismissal: null, description: 'Perfect lofted strike, one bounce into the fence.' };
+            }
+
+            if (shot.id === 'drive') {
+                const driveRuns = Math.random() < 0.10 ? 6 : 4;
+                return {
+                    runs: driveRuns,
+                    wicket: false,
+                    edge: false,
+                    dismissal: null,
+                    description: driveRuns === 6 ? 'Perfect drive clears the ropes for six.' : 'Perfect drive races away for four.'
+                };
+            }
+
+            const perfectBoundaryChance = (shot.category === 'power' || shot.category === 'innovative') ? 0.96 : 0.90;
+            if (Math.random() < perfectBoundaryChance) {
+                const sixBias = (shot.category === 'power' || shot.category === 'innovative') ? 0.45 : 0.18;
+                const runs = Math.random() < sixBias ? 6 : 4;
+                return {
+                    runs: runs,
+                    wicket: false,
+                    edge: false,
+                    dismissal: null,
+                    description: runs === 6 ? 'Perfect contact launches it for six.' : 'Perfect timing threads the boundary for four.'
+                };
+            }
+        }
+
         const boundaryLine = this.getBoundaryDistance(pitchMods, zone);
         const isAerial = trajectory.elevation >= 22;
 
@@ -621,11 +994,21 @@ class BattingSystem {
         const ringFactor = infield ? fieldDensity.innerRing : fieldDensity.deep;
         const coverage = this.clamp(zoneDensity * 0.65 + ringFactor * 0.35, 0, 1);
 
+        const timingRunFactor = {
+            perfect: 0.22,
+            good: 0.14,
+            early: -0.08,
+            late: -0.06,
+            very_early: -0.20,
+            very_late: -0.18
+        }[timing.grade] || 0;
+
         let runPotential =
             trajectory.travelDistance / 24 +
             (1 - coverage) * 1.30 +
             contact.controlFactor * 0.28 -
-            (infield ? 0.55 : 0.0);
+            (infield ? 0.55 : 0.0) +
+            timingRunFactor;
 
         // Signature ability integration at interception layer.
         if (batter?.id === 'kohli') runPotential += 0.18;
@@ -679,6 +1062,16 @@ class BattingSystem {
     }
 
     resolveDismissal({ contact, trajectory, shot, timing, delivery, fieldDensity, zone, context }) {
+        // Perfect timing should be almost never out.
+        if (timing.grade === 'perfect') {
+            if (Math.random() < 0.995) return { isWicket: false };
+        }
+
+        // Good timing should have very low wicket probability.
+        if (timing.grade === 'good') {
+            if (Math.random() < 0.96) return { isWicket: false };
+        }
+
         const deliveryId = this.getDeliveryId(delivery);
         const boundaryLine = this.getBoundaryDistance(this.getPitchTrajectoryModifiers(context?.pitch || this.engine.pitch), zone);
 
@@ -693,6 +1086,13 @@ class BattingSystem {
             if (shot.id !== 'defensive') {
                 bowledChance += 0.04;
                 lbwChance += 0.03;
+            }
+            if (timing.grade === 'very_early') {
+                lbwChance += 0.04;
+                bowledChance += 0.03;
+            }
+            if (timing.grade === 'very_late') {
+                bowledChance += 0.05;
             }
 
             const roll = Math.random();
@@ -735,6 +1135,11 @@ class BattingSystem {
                 (contact.type === CONTACT_TYPES.EDGE ? 0.08 : 0) +
                 ((shot.category === 'power' || shot.category === 'innovative') ? 0.08 : 0) -
                 (contact.type === CONTACT_TYPES.SWEET ? 0.12 : 0);
+
+            if (timing.grade === 'very_early' || timing.grade === 'very_late') catchChance += 0.07;
+            else if (timing.grade === 'early' || timing.grade === 'late') catchChance += 0.03;
+            else if (timing.grade === 'good') catchChance -= 0.12;
+            else if (timing.grade === 'perfect') catchChance -= 0.35;
 
             // Do not convert obvious clears into catches.
             if (trajectory.travelDistance > boundaryLine * 0.98) catchChance *= 0.45;

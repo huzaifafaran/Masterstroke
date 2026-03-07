@@ -21,14 +21,24 @@ class CricketLegendsApp {
         this.gameMode = 'quick'; // quick, superover
         this.loopId = null;
         this.lastFrameTime = 0;
+        this._responsiveTick = null;
+        this.lastTimingLockPosition = null;
+        this.lastTimingZones = null;
+        this.team1BattingOrder = [];
+        this.team1BowlingRotation = [];
+        this.debugMode = true;
+        this.debugLogBuffer = [];
     }
 
     // ── Initialize ─────────────────────────────────────────
     init() {
         this.bindMenuEvents();
+        this.bindResponsiveUI();
         this.showScreen('menu-screen');
         this.populateTeamSelectors();
         this.renderEmojis(document.body);
+        this.syncResponsiveUI();
+        this.resetDebugOverlay();
     }
 
     // ── Screen Management ──────────────────────────────────
@@ -36,6 +46,131 @@ class CricketLegendsApp {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         const screen = document.getElementById(id);
         if (screen) screen.classList.add('active');
+        this.syncResponsiveUI();
+    }
+
+    bindResponsiveUI() {
+        const infoToggleBtn = document.getElementById('btn-toggle-info');
+        const commToggleBtn = document.getElementById('btn-toggle-commentary');
+        const closeInfoBtn = document.getElementById('btn-close-info');
+        const closeCommBtn = document.getElementById('btn-close-commentary');
+
+        infoToggleBtn?.addEventListener('click', () => this.toggleMobilePanel('info'));
+        commToggleBtn?.addEventListener('click', () => this.toggleMobilePanel('commentary'));
+        closeInfoBtn?.addEventListener('click', () => this.closeMobilePanels());
+        closeCommBtn?.addEventListener('click', () => this.closeMobilePanels());
+
+        const scheduleSync = () => {
+            if (this._responsiveTick) return;
+            this._responsiveTick = requestAnimationFrame(() => {
+                this._responsiveTick = null;
+                this.syncResponsiveUI();
+            });
+        };
+
+        window.addEventListener('resize', scheduleSync, { passive: true });
+        window.addEventListener('orientationchange', scheduleSync, { passive: true });
+    }
+
+    toggleMobilePanel(panel) {
+        const layout = document.querySelector('#game-screen .game-layout');
+        if (!layout || !this.isMobileLayout()) return;
+
+        const showInfo = layout.classList.contains('show-info-panel');
+        const showCommentary = layout.classList.contains('show-commentary-panel');
+
+        if (panel === 'info') {
+            layout.classList.toggle('show-info-panel', !showInfo);
+            layout.classList.toggle('show-commentary-panel', false);
+            return;
+        }
+
+        if (panel === 'commentary') {
+            layout.classList.toggle('show-commentary-panel', !showCommentary);
+            layout.classList.toggle('show-info-panel', false);
+        }
+    }
+
+    closeMobilePanels() {
+        const layout = document.querySelector('#game-screen .game-layout');
+        if (!layout) return;
+        layout.classList.remove('show-info-panel', 'show-commentary-panel');
+    }
+
+    syncResponsiveUI() {
+        const layout = document.querySelector('#game-screen .game-layout');
+        if (!layout) return;
+
+        if (!this.isMobileLayout()) {
+            this.closeMobilePanels();
+        }
+    }
+
+    isMobileLayout() {
+        return window.matchMedia('(max-width: 1024px)').matches;
+    }
+
+    resetDebugOverlay() {
+        this.debugLogBuffer = [];
+        const stateEl = document.getElementById('debug-state');
+        const logEl = document.getElementById('debug-log');
+        const panel = document.getElementById('debug-overlay');
+        if (panel) panel.classList.toggle('hidden', !this.debugMode);
+        if (stateEl) stateEl.textContent = 'state: waiting for match data...';
+        if (logEl) logEl.innerHTML = '';
+    }
+
+    getTeamRefName(teamRef) {
+        if (!this.engine || !teamRef) return 'unknown';
+        if (teamRef === this.engine.team1) return `${this.selectedTeam1} (team1)`;
+        if (teamRef === this.engine.team2) return `${this.selectedTeam2} (team2)`;
+        return 'non-canonical-team-ref';
+    }
+
+    appendDebugLog(eventName, extra = '') {
+        if (!this.debugMode) return;
+        const now = new Date();
+        const ts = `${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}.${String(now.getMilliseconds()).padStart(3, '0')}`;
+        const line = `[${ts}] ${eventName}${extra ? ` | ${extra}` : ''}`;
+        this.debugLogBuffer.unshift(line);
+        if (this.debugLogBuffer.length > 24) this.debugLogBuffer.length = 24;
+        const logEl = document.getElementById('debug-log');
+        if (logEl) {
+            logEl.innerHTML = this.debugLogBuffer.map((l) => `<div class="debug-line">${l}</div>`).join('');
+        }
+    }
+
+    updateDebugState(reason = 'tick') {
+        if (!this.debugMode) return;
+        const panel = document.getElementById('debug-overlay');
+        const stateEl = document.getElementById('debug-state');
+        if (!panel || !stateEl) return;
+        panel.classList.remove('hidden');
+
+        if (!this.engine || !this.gameController) {
+            stateEl.textContent = `reason=${reason}\nengine/gameController not ready`;
+            return;
+        }
+
+        const modeState = this.gameController.getGameState ? this.gameController.getGameState() : {};
+        const humanRole = modeState?.humanRole || '-';
+        const phase = modeState?.phase || this.gamePhase || '-';
+        const innings = this.engine.innings;
+        const batTeamName = this.getTeamRefName(this.engine.battingTeam);
+        const bowlTeamName = this.getTeamRefName(this.engine.bowlingTeam);
+        const battingVisible = !document.getElementById('batting-controls')?.classList.contains('hidden');
+        const bowlingVisible = !document.getElementById('bowling-controls')?.classList.contains('hidden');
+        const target = this.engine.target ?? '-';
+        const score = `${this.engine.state?.runs ?? 0}/${this.engine.state?.wickets ?? 0}`;
+
+        stateEl.textContent = [
+            `reason=${reason}`,
+            `mode=${modeState?.mode || this.gameMode} | innings=${innings} | phase=${phase} | humanRole=${humanRole}`,
+            `battingTeam=${batTeamName}`,
+            `bowlingTeam=${bowlTeamName}`,
+            `controls: battingVisible=${battingVisible} bowlingVisible=${bowlingVisible}`,
+            `score=${score} | target=${target}`
+        ].join('\n');
     }
 
     // ── Menu Events ────────────────────────────────────────
@@ -43,6 +178,7 @@ class CricketLegendsApp {
         document.getElementById('btn-quick-match')?.addEventListener('click', () => {
             this.gameMode = 'quick';
             this.showScreen('setup-screen');
+            this.initializeQuickMatchLineups();
         });
 
         document.getElementById('btn-super-over')?.addEventListener('click', () => {
@@ -65,7 +201,10 @@ class CricketLegendsApp {
 
         document.getElementById('btn-start-match')?.addEventListener('click', () => this.startMatch());
 
-        document.getElementById('sel-team1')?.addEventListener('change', (e) => this.selectedTeam1 = e.target.value);
+        document.getElementById('sel-team1')?.addEventListener('change', (e) => {
+            this.selectedTeam1 = e.target.value;
+            this.initializeQuickMatchLineups();
+        });
         document.getElementById('sel-team2')?.addEventListener('change', (e) => this.selectedTeam2 = e.target.value);
         document.getElementById('sel-overs')?.addEventListener('change', (e) => this.selectedOvers = parseInt(e.target.value));
         document.getElementById('sel-difficulty')?.addEventListener('change', (e) => this.selectedDifficulty = e.target.value);
@@ -116,12 +255,92 @@ class CricketLegendsApp {
                 selPitch.appendChild(opt);
             });
         }
+
+        this.initializeQuickMatchLineups();
+    }
+
+    isBowlingEligible(player) {
+        if (!player) return false;
+        if (player.bowlingStyle === BOWLING_STYLE.NONE) return false;
+        const roleEligible = player.role === PLAYER_ROLES.BOWLER || player.role === PLAYER_ROLES.ALL_ROUNDER;
+        const skillEligible = (player.bowling?.paceOrSpin || 0) >= 30;
+        return roleEligible && skillEligible;
+    }
+
+    initializeQuickMatchLineups() {
+        const teamPlayers = getTeamPlayers(this.selectedTeam1);
+        if (!teamPlayers.length) return;
+
+        const validIds = new Set(teamPlayers.map(p => p.id));
+
+        const keptBatting = (this.team1BattingOrder || []).filter(id => validIds.has(id));
+        const missingBatting = teamPlayers.map(p => p.id).filter(id => !keptBatting.includes(id));
+        this.team1BattingOrder = [...keptBatting, ...missingBatting];
+
+        const bowlers = teamPlayers.filter(p => this.isBowlingEligible(p));
+        const bowlerIds = new Set(bowlers.map(p => p.id));
+        const keptBowling = (this.team1BowlingRotation || []).filter(id => bowlerIds.has(id));
+        const missingBowling = bowlers.map(p => p.id).filter(id => !keptBowling.includes(id));
+        this.team1BowlingRotation = [...keptBowling, ...missingBowling];
+
+        this.renderLineupEditors();
+    }
+
+    moveLineupItem(type, index, direction) {
+        const list = type === 'batting' ? this.team1BattingOrder : this.team1BowlingRotation;
+        const target = index + direction;
+        if (!Array.isArray(list) || target < 0 || target >= list.length) return;
+        const temp = list[index];
+        list[index] = list[target];
+        list[target] = temp;
+        this.renderLineupEditors();
+    }
+
+    renderLineupEditors() {
+        const battingHost = document.getElementById('batting-order-list');
+        const bowlingHost = document.getElementById('bowling-order-list');
+        if (!battingHost || !bowlingHost) return;
+
+        const resolveName = (id) => getPlayerById(id)?.name || id;
+        const buildRows = (ids, type) => ids.map((id, idx) => `
+            <div class="lineup-row">
+                <div class="lineup-meta">
+                    <span class="lineup-index">${idx + 1}</span>
+                    <span class="lineup-name">${resolveName(id)}</span>
+                </div>
+                <div class="lineup-actions">
+                    <button type="button" class="lineup-move-btn" data-type="${type}" data-dir="-1" data-index="${idx}" ${idx === 0 ? 'disabled' : ''}>Up</button>
+                    <button type="button" class="lineup-move-btn" data-type="${type}" data-dir="1" data-index="${idx}" ${idx === ids.length - 1 ? 'disabled' : ''}>Down</button>
+                </div>
+            </div>
+        `).join('');
+
+        battingHost.innerHTML = buildRows(this.team1BattingOrder, 'batting');
+        bowlingHost.innerHTML = buildRows(this.team1BowlingRotation, 'bowling');
+
+        const bindMoves = (root) => {
+            root.querySelectorAll('.lineup-move-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const type = btn.dataset.type;
+                    const dir = parseInt(btn.dataset.dir, 10) || 0;
+                    const index = parseInt(btn.dataset.index, 10) || 0;
+                    this.moveLineupItem(type, index, dir);
+                });
+            });
+        };
+
+        bindMoves(battingHost);
+        bindMoves(bowlingHost);
     }
 
     // ── Start Match ────────────────────────────────────────
     startMatch() {
         const feed = document.getElementById('commentary-feed');
         if (feed) feed.innerHTML = '';
+        this.resetDebugOverlay();
+        this.appendDebugLog('startMatch', `mode=${this.gameMode} team1=${this.selectedTeam1} team2=${this.selectedTeam2}`);
+
+        this.initializeQuickMatchLineups();
 
         const team1Players = getTeamPlayers(this.selectedTeam1);
         const team2Players = getTeamPlayers(this.selectedTeam2);
@@ -131,7 +350,9 @@ class CricketLegendsApp {
             team2: team2Players,
             totalOvers: this.gameMode === 'superover' ? 1 : this.selectedOvers,
             pitch: this.selectedPitch,
-            difficulty: this.selectedDifficulty
+            difficulty: this.selectedDifficulty,
+            team1BattingOrder: [...this.team1BattingOrder],
+            team1BowlingRotation: [...this.team1BowlingRotation]
         });
 
         this.batting = new BattingSystem(this.engine);
@@ -145,8 +366,15 @@ class CricketLegendsApp {
         // Bind GameController events
         this.gameController.on('phaseChange', (data) => {
             this.gamePhase = data.phase;
+            if (data.phase === 'batting_human') {
+                this.showBattingControls();
+            } else if (data.phase === 'bowling_human') {
+                this.showBowlingControls();
+            }
             this.updatePlayerInfo();
             this.updateScoreboard();
+            this.appendDebugLog('phaseChange', `phase=${data.phase}`);
+            this.updateDebugState('phaseChange');
         });
         
         this.gameController.on('ballReadyHumanBatting', (data) => {
@@ -160,6 +388,8 @@ class CricketLegendsApp {
             if (autoShot) {
                 setTimeout(() => this.selectShot(autoShot), 50);
             }
+            this.appendDebugLog('ballReadyHumanBatting', `delivery=${data.deliveryResult?.delivery?.id || data.deliveryResult?.deliveryType || 'unknown'}`);
+            this.updateDebugState('ballReadyHumanBatting');
         });
         
         this.gameController.on('ballReadyHumanBowling', (data) => {
@@ -170,6 +400,18 @@ class CricketLegendsApp {
             if (autoDelivery) {
                 setTimeout(() => this.selectAndBowl(autoDelivery), 50);
             }
+            this.appendDebugLog('ballReadyHumanBowling', `batter=${data.batter?.name || '-'} bowler=${data.bowler?.name || '-'}`);
+            this.updateDebugState('ballReadyHumanBowling');
+        });
+
+        this.gameController.on('inningsStart', () => {
+            const role = this.gameController?.getGameState?.().humanRole;
+            if (role === 'bowl') this.showBowlingControls();
+            if (role === 'bat') this.showBattingControls();
+            this.updateScoreboard();
+            this.updatePlayerInfo();
+            this.appendDebugLog('inningsStart', `innings=${this.engine?.innings} role=${role}`);
+            this.updateDebugState('inningsStart');
         });
 
         this.gameController.on('ballComplete', (data) => {
@@ -186,16 +428,23 @@ class CricketLegendsApp {
 
                 this.updateScoreboard();
                 this.updatePlayerInfo();
-                this.showTimingResult(outcome.timing);
+                this.showTimingResult(outcome.timingDetail || outcome.timing, outcome.timingPosition, outcome.timingZones);
 
                 setTimeout(() => {
                     this.animating = false;
                 }, spriteDuration);
             });
+            this.appendDebugLog('ballComplete', `runs=${outcome?.runs} wicket=${!!outcome?.wicket}`);
+            this.updateDebugState('ballComplete');
         });
 
         this.gameController.on('matchEnd', (data) => this.onMatchEnd(data));
         this.gameController.on('duelEnd', (data) => this.onMatchEnd(data));
+        this.engine.on('wicket', (data) => this.onWicket(data));
+        this.engine.on('overEnd', (data) => this.onOverEnd(data));
+        this.engine.on('inningsEnd', (data) => this.onInningsEnd(data));
+        this.engine.on('overEnd', () => this.updateDebugState('engine.overEnd'));
+        this.engine.on('inningsEnd', () => this.updateDebugState('engine.inningsEnd'));
         this.gameController.on('turnStart', (data) => {
             if (data.playerNum === 1) {
                 this.addCommentary(`🏏 Player 1 batting first (${data.balls} balls). Set a strong target.`, 'innings');
@@ -251,6 +500,7 @@ class CricketLegendsApp {
 
         this.gamePhase = 'toss';
         this.updateScoreboard();
+        this.updateDebugState('postStartMatch');
         this.startGameLoop();
 
         // Start appropriate mode
@@ -430,20 +680,28 @@ class CricketLegendsApp {
         const zones = this.batting.timingZones;
         if (!zones) return;
         const total = zones.total;
-        const earlyPct = (zones.early / total * 100).toFixed(1);
-        const perfectPct = (zones.perfect / total * 100).toFixed(1);
-        const latePct = (zones.late / total * 100).toFixed(1);
+        const zoneKeys = [
+            { key: 'veryEarly', cls: '.timing-zone-very-early' },
+            { key: 'early', cls: '.timing-zone-early' },
+            { key: 'good', cls: '.timing-zone-good' },
+            { key: 'perfect', cls: '.timing-zone-perfect' },
+            { key: 'late', cls: '.timing-zone-late' },
+            { key: 'veryLate', cls: '.timing-zone-very-late' }
+        ];
 
-        const earlyEl = document.querySelector('.timing-zone-early');
-        const perfectEl = document.querySelector('.timing-zone-perfect');
-        const lateEl = document.querySelector('.timing-zone-late');
-        if (earlyEl)   earlyEl.style.flex = `0 0 ${earlyPct}%`;
-        if (perfectEl) perfectEl.style.flex = `0 0 ${perfectPct}%`;
-        if (lateEl)    lateEl.style.flex = `0 0 ${latePct}%`;
+        zoneKeys.forEach(({ key, cls }) => {
+            const el = document.querySelector(cls);
+            if (!el) return;
+            const width = Math.max(0, zones[key] || 0);
+            const pct = ((width / total) * 100).toFixed(2);
+            el.style.flex = `0 0 ${pct}%`;
+        });
     }
 
     playShot(shotId) {
         if (this.animating || !this.batting.timingBarActive) return;
+        this.lastTimingLockPosition = this.batting.timingBarPosition;
+        this.lastTimingZones = this.batting.timingZones;
         this.animating = true;
         this.hideTimingBar();
 
@@ -637,17 +895,21 @@ class CricketLegendsApp {
     }
 
     showBattingControls() {
+        this.closeMobilePanels();
         document.getElementById('batting-controls')?.classList.remove('hidden');
         document.getElementById('bowling-controls')?.classList.add('hidden');
         document.getElementById('delivery-info')?.classList.remove('hidden');
         this.hideExecutionMeter();
+        this.updateDebugState('showBattingControls');
     }
 
     showBowlingControls() {
+        this.closeMobilePanels();
         document.getElementById('bowling-controls')?.classList.remove('hidden');
         document.getElementById('batting-controls')?.classList.add('hidden');
         document.getElementById('delivery-info')?.classList.add('hidden');
         this.hideTimingBar();
+        this.updateDebugState('showBowlingControls');
     }
 
     showExecutionMeter() {
@@ -664,14 +926,51 @@ class CricketLegendsApp {
         this.setText('delivery-info', delivery.description);
     }
 
-    showTimingResult(timing) {
+    showTimingResult(timing, lockedPosition = null, lockedZones = null) {
         const el = document.getElementById('timing-result');
-        if (el) {
-            el.textContent = timing.toUpperCase();
-            el.className = `timing-result timing-${timing}`;
-            el.style.opacity = '1';
-            setTimeout(() => { el.style.opacity = '0'; }, 1000);
+        if (el) el.style.opacity = '0';
+        this.showTimingLandingFeedback(timing, lockedPosition, lockedZones);
+    }
+
+    showTimingLandingFeedback(timing, lockedPosition = null, lockedZones = null) {
+        const box = document.getElementById('timing-landing-feedback');
+        const marker = document.getElementById('timing-landing-marker');
+        const text = document.getElementById('timing-landing-text');
+        if (!box || !marker || !text) return;
+
+        const position = Math.max(0, Math.min(100,
+            lockedPosition !== null && lockedPosition !== undefined
+                ? lockedPosition
+                : (this.lastTimingLockPosition ?? this.batting?.timingBarPosition ?? 50)
+        ));
+        marker.style.left = `${position}%`;
+        text.textContent = String(timing).replace('_', ' ').toUpperCase();
+
+        const zones = lockedZones || this.lastTimingZones || this.batting?.timingZones;
+        if (zones && zones.total) {
+            const zoneEls = [
+                { key: 'veryEarly', cls: '.timing-landing-zone-very-early' },
+                { key: 'early', cls: '.timing-landing-zone-early' },
+                { key: 'good', cls: '.timing-landing-zone-good' },
+                { key: 'perfect', cls: '.timing-landing-zone-perfect' },
+                { key: 'late', cls: '.timing-landing-zone-late' },
+                { key: 'veryLate', cls: '.timing-landing-zone-very-late' }
+            ];
+            zoneEls.forEach(({ key, cls }) => {
+                const el = box.querySelector(cls);
+                if (!el) return;
+                const pct = ((Math.max(0, zones[key] || 0) / zones.total) * 100).toFixed(2);
+                el.style.flex = `0 0 ${pct}%`;
+            });
         }
+
+        box.className = `timing-landing-feedback show grade-${timing}`;
+        box.classList.remove('hidden');
+        clearTimeout(this._timingLandingHideT);
+        this._timingLandingHideT = setTimeout(() => {
+            box.classList.add('hidden');
+            box.classList.remove('show', `grade-${timing}`);
+        }, 1400);
     }
 
     setText(id, text) {
@@ -722,17 +1021,14 @@ class CricketLegendsApp {
     }
 
     onInningsEnd(data) {
-        this.addCommentary(`🏏 End of ${data.innings === 1 ? '1st' : '2nd'} innings: ${data.total}/${data.wickets} (${data.overs})`, 'innings');
-        
-        if (data.innings === 1) {
-            // First innings ended, setting up second innings
-            setTimeout(() => {
-                this.gamePhase = this.playerRole === 'bat' ? 'bowling' : 'batting';
-                this.addCommentary(`🎯 Target: ${this.engine.target}`, 'innings');
-                this.updateScoreboard();
-                this.updatePlayerInfo();
-                this.startNextBall();
-            }, 2000);
+        this.addCommentary(`End of ${data.innings === 1 ? '1st' : '2nd'} innings: ${data.total}/${data.wickets} (${data.overs})`, 'innings');
+        this.appendDebugLog('onInningsEnd', `innings=${data.innings} total=${data.total}/${data.wickets}`);
+        this.updateDebugState('onInningsEnd');
+
+        // Mode controllers handle innings transitions and role swap.
+        // Keep app-level innings handler commentary-only.
+        if (data.innings === 1 && this.engine?.target) {
+            this.addCommentary(`Target: ${this.engine.target}`, 'innings');
         }
     }
 
@@ -810,3 +1106,5 @@ document.addEventListener('DOMContentLoaded', () => {
     window.app = new CricketLegendsApp();
     window.app.init();
 });
+
+

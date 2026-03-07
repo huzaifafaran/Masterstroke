@@ -33,6 +33,8 @@ class GameController {
 
     startVsAI(config) {
         this.currentMode = 'vs_ai';
+        // Ensure innings transitions are owned by the VS-AI mode controller.
+        this.engine.forceMode('vs_ai');
         this.currentModeCtrl = new VsAIModeController(this, this.engine);
         this.currentModeCtrl.start(config);
     }
