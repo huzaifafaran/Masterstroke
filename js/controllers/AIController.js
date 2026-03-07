@@ -337,9 +337,8 @@ class AIController {
         if (!planType) return;
 
         const key = `${planType}|inn${context?.innings}|ov${over}`;
-        if (this.overPlanKey === key) return;
-        if (this.overPlanPromise && this.overPlanKey === key) {
-            await this.overPlanPromise;
+        if (this.overPlanKey === key) {
+            if (this.overPlanPromise) await this.overPlanPromise;
             return;
         }
 
