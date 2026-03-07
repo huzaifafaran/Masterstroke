@@ -420,6 +420,7 @@ class AIController {
         const ballsLeft = Math.max(0, (totalOvers * 6) - balls);
         const shortFormat = totalOvers <= 6;
         const ultraShort = totalOvers <= 2;
+        const completedOvers = balls / 6;
         const batterAttrs = this.engine.getEffectiveAttributes(batter, 'batting');
         const bowlerAttrs = this.engine.getEffectiveAttributes(bowler, 'bowling');
         const allowedShots = typeof getShotsForBatter === 'function'
@@ -437,6 +438,17 @@ class AIController {
         const battingObjective = this.getBattingObjective(context, chaseState);
         const currentOver = context?.currentOver ?? Math.floor(balls / 6);
         const oversLeft = Math.max(0, totalOvers - currentOver - ((context?.ballInOver ?? (balls % 6)) > 0 ? 1 : 0));
+        const runRate = Number(context?.runRate ?? this.engine.getRunRate?.() ?? 0);
+        const projectedTotal = completedOvers > 0 ? Math.round(runRate * totalOvers) : 0;
+        const parRunRate = totalOvers <= 2 ? 14.5 : totalOvers <= 5 ? 10.5 : totalOvers <= 10 ? 8.8 : 7.8;
+        const parTotal = Math.round(parRunRate * totalOvers);
+        const formatUrgency = totalOvers <= 2
+            ? 'every_ball_is_high_leverage'
+            : totalOvers <= 5
+            ? 'sprint_finish'
+            : totalOvers <= 10
+            ? 'fast_build'
+            : 'standard_build';
 
         let tempoHint = 'standard';
         if (ultraShort) tempoHint = 'all_phases_are_clutch';
@@ -457,14 +469,19 @@ class AIController {
             oversLeft,
             balls,
             ballsLeft,
-            score: `${runs}/${wickets}`,
+            score: runs,
+            scoreText: `${runs}/${wickets}`,
             runs,
             wickets,
             target: context?.target ?? this.engine.target ?? null,
             runsNeeded: context?.runsNeeded ?? null,
             wicketsInHand: Math.max(0, 10 - wickets),
             requiredRunRate: context?.requiredRunRate ?? null,
-            runRate: context?.runRate ?? null,
+            runRate,
+            projectedTotal,
+            parRunRate,
+            parTotal,
+            formatUrgency,
             chaseState,
             battingObjective,
             pressure: context?.pressure ?? this.engine.calculatePressure(),
@@ -547,6 +564,9 @@ class AIController {
         const wickets = context?.wickets ?? 0;
         const wicketsInHand = Math.max(0, 10 - wickets);
         const pressure = Number(context?.pressure || 0);
+        const runRate = Number(context?.runRate || 0);
+        const shortFormat = totalOvers <= 6;
+        const veryShortFormat = totalOvers <= 5;
 
         if (context?.innings === 2 && context?.target) {
             return {
@@ -558,9 +578,25 @@ class AIController {
 
         // Innings 1: set target by phases, then death acceleration if wickets in hand.
         let mode = 'platform_build';
-        if (over < 6) mode = 'powerplay_launch';
-        else if (over < Math.max(6, totalOvers - 4)) mode = wicketsInHand >= 6 ? 'platform_build' : 'risk_off_anchor';
-        else mode = wicketsInHand >= 5 ? 'target_boost' : 'balanced_finish';
+        if (veryShortFormat) {
+            if (over <= 0) mode = 'fast_launch';
+            else if (over < Math.max(1, totalOvers - 2)) mode = wicketsInHand >= 7 ? 'sprint_accelerate' : 'measured_attack';
+            else mode = wicketsInHand >= 5 ? 'all_out_finish' : 'salvage_finish';
+        } else if (shortFormat) {
+            if (over < 2) mode = 'powerplay_launch';
+            else if (over < Math.max(2, totalOvers - 2)) mode = wicketsInHand >= 6 ? 'accelerate_without_stalling' : 'measured_attack';
+            else mode = wicketsInHand >= 5 ? 'target_boost' : 'balanced_finish';
+        } else if (over < 6) {
+            mode = 'powerplay_launch';
+        } else if (over < Math.max(6, totalOvers - 4)) {
+            mode = wicketsInHand >= 6 ? 'platform_build' : 'risk_off_anchor';
+        } else {
+            mode = wicketsInHand >= 5 ? 'target_boost' : 'balanced_finish';
+        }
+
+        if (veryShortFormat && over >= Math.max(1, totalOvers - 1) && runRate < 9) {
+            mode = wicketsInHand >= 4 ? 'all_out_finish' : 'salvage_finish';
+        }
         if (pressure > 0.75 && wicketsInHand <= 3) mode = 'risk_off_anchor';
 
         return {

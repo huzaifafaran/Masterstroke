@@ -429,12 +429,16 @@ class TacticalBrainClient {
             : null;
 
         const sharedContext = {
+            innings: payload?.innings ?? payload?.match?.innings ?? null,
             currentOver,
             ball: payload?.ball ?? payload?.match?.ball,
             ballsRemaining: phase.ballsLeft,
             matchPhase: phase.label,
             score: payload?.score ?? payload?.match?.score,
             target: payload?.target ?? payload?.match?.target ?? null,
+            chaseContext: (payload?.innings ?? payload?.match?.innings) === 2
+                ? `Second innings chase/defence context. Target is ${payload?.target ?? payload?.match?.target ?? 'unknown'}.`
+                : `First innings target-setting context. Current projected task is to build a defendable total.`,
             wicketsInHand: payload?.wicketsLeft ?? payload?.match?.wicketsLeft,
             requiredRunRate: this._safeRRR(payload),
             currentRunRate: this._safeCRR(payload),
@@ -450,7 +454,7 @@ class TacticalBrainClient {
             const partner = payload?.partner ?? {};
 
             return JSON.stringify({
-            task: 'You are a sharp, instinctive cricket batting coach. Study the live match situation — including what has happened over the last few overs — and produce a tactical plan for this over. Use formatOvers as authoritative and adapt tempo to match length (for example, 5-over games need much earlier acceleration than T20). Your plan must feel natural, reactive, and alive to what\'s actually happening in the match.',
+            task: 'You are a sharp, instinctive cricket batting coach. Study the live match situation — including what has happened over the last few overs — and produce a tactical plan for this over. Use formatOvers as authoritative and treat match length literally. If this is a 5-over match, over 3 is not early and over 5 is full finishing mode. Do not say "early days", "no need to rush", "rotate for now", or anything similarly passive in a short match unless the batting side is massively ahead. Your plan must feel natural, reactive, and alive to what\'s actually happening in the match.',
 
                 philosophy: [
                     'Great batting is about reading the match, not just executing patterns.',
@@ -460,11 +464,39 @@ class TacticalBrainClient {
                     'In the powerplay, field placements are gifts — exploit gaps aggressively.',
                     'Death overs are about intent first, shot selection second.',
                     'Sound like a living competitor, not a dashboard. You care about winning this contest.',
+                    'Match length is literal, not cosmetic. In a 5-over match, over 3 is already the back half of the innings.',
+                    'In short matches, passive accumulation is usually wrong unless the scoreboard clearly says you are safe.',
                 ],
 
                 situationalNuance: this._buildBattingSituationalNuance(pressure, phase, momentum, memoryState),
 
                 matchContext: sharedContext,
+
+                formatAwareness: {
+                    instruction: 'Read the format literally and plan off the exact innings length, not default T20 pacing.',
+                    formatOvers: payload?.formatOvers ?? null,
+                    currentOver: currentOver,
+                    ballsRemaining: phase.ballsLeft,
+                    reminder: (payload?.formatOvers ?? 20) <= 6
+                        ? 'Short-format sprint: there is less time than a normal T20 middle phase.'
+                        : 'Standard format pacing applies.'
+                },
+
+                inningsAwareness: (payload?.innings ?? 1) === 2
+                    ? {
+                        instruction: 'You are batting second. The target is not abstract; it is the scoreboard you must chase right now.',
+                        targetToChase: payload?.target ?? null,
+                        scoreNow: payload?.score ?? null,
+                        ballsRemaining: phase.ballsLeft,
+                        requiredRunRate: this._safeRRR(payload),
+                        reminder: 'When batting second, always speak and plan against the exact target.'
+                    }
+                    : {
+                        instruction: 'You are batting first. You are creating the target the opponent must chase.',
+                        currentScore: payload?.score ?? null,
+                        ballsRemaining: phase.ballsLeft,
+                        reminder: 'When batting first, think about what total will put the opponent under pressure later.'
+                    },
 
                 matchHistorySoFar: {
                     note: 'Use this to assess how things have gone, whether plans have worked, and what the trend is.',
@@ -511,7 +543,7 @@ class TacticalBrainClient {
                         avoidShots:  'array of shot ids from allowedShots to consciously suppress',
                         targetZones: 'array of up to 3 field zone strings',
                         narrative:   'one short human sentence explaining the tactical idea in live-match language, not analyst language',
-                        read:        'one or two natural, conversational sentences in first person as a competitive cricket mind living this game in real time. React emotionally but plausibly to what just happened: regret bad calls, enjoy plans that work, acknowledge pressure, threaten a pivot, or stay calm when in control. Be invested in beating the opponent. No robotic labels, no bullet points, no JSON-like phrasing.',
+                        read:        'one or two natural, conversational sentences in first person as a competitive cricket mind living this game in real time. React emotionally but plausibly to what just happened: regret bad calls, enjoy plans that work, acknowledge pressure, threaten a pivot, or stay calm when in control. Be invested in beating the opponent. Respect the exact match length. In a 5-over game, do not call over 3 early and do not suggest passive strike rotation unless the batting side is already clearly ahead. No robotic labels, no bullet points, no JSON-like phrasing.',
                     }
                 }
             });
@@ -522,7 +554,7 @@ class TacticalBrainClient {
         const batter  = payload?.batter ?? {};
 
         return JSON.stringify({
-            task: 'You are a shrewd cricket bowling tactician. Look at what\'s happened over the last few overs, assess whether your plans have worked, and design a bowling plan for this over. Use formatOvers as authoritative and adapt aggression to match length (for example, 5-over games have compressed phases). Think in sequences. React to what the match is telling you.',
+            task: 'You are a shrewd cricket bowling tactician. Look at what\'s happened over the last few overs, assess whether your plans have worked, and design a bowling plan for this over. Use formatOvers as authoritative and adapt aggression to match length (for example, 5-over games have compressed phases). Think in sequences. React to what the match is telling you. If this is the second innings, you are defending or attacking a real target and must know exactly what score your side made and what the batting side still needs.',
 
             philosophy: [
                 'Every delivery is either a setup ball or a target ball — know which one you are bowling.',
@@ -531,11 +563,39 @@ class TacticalBrainClient {
                 'Under pressure, discipline and precision beat experimentation.',
                 'Never bowl the same ball twice consecutively to a settled batter.',
                 'Sound like a living competitor, not a dashboard. You care about winning this contest.',
+                    'Match length is literal, not cosmetic. In a 5-over match, over 3 is already the back half of the innings.',
+                    'In short matches, passive accumulation is usually wrong unless the scoreboard clearly says you are safe.',
             ],
 
             situationalNuance: this._buildBowlingSituationalNuance(pressure, phase, momentum, memoryState),
 
             matchContext: sharedContext,
+
+                formatAwareness: {
+                    instruction: 'Read the format literally and plan off the exact innings length, not default T20 pacing.',
+                    formatOvers: payload?.formatOvers ?? null,
+                    currentOver: currentOver,
+                    ballsRemaining: phase.ballsLeft,
+                    reminder: (payload?.formatOvers ?? 20) <= 6
+                        ? 'Short-format sprint: there is less time than a normal T20 middle phase.'
+                        : 'Standard format pacing applies.'
+                },
+
+            inningsAwareness: (payload?.innings ?? 1) === 2
+                ? {
+                    instruction: 'You are bowling in the chase. You are defending a target your side already posted.',
+                    targetToDefend: payload?.target ?? null,
+                    scoreNow: payload?.score ?? null,
+                    ballsRemaining: phase.ballsLeft,
+                    requiredRunRate: this._safeRRR(payload),
+                    reminder: 'Always plan with the exact target in mind. Know what you are defending.'
+                }
+                : {
+                    instruction: 'You are bowling in the first innings. You are shaping what target the batting side can set.',
+                    currentScoreConceded: payload?.score ?? null,
+                    ballsRemaining: phase.ballsLeft,
+                    reminder: 'What you concede now becomes the target later.'
+                },
 
             matchHistorySoFar: {
                 note: 'Use this to assess how things have gone, whether plans have worked, and what the trend is.',
@@ -574,7 +634,7 @@ class TacticalBrainClient {
                     avoidDeliveries:  'array of delivery ids from allowedDeliveries to suppress',
                     attackZones:      'array of up to 3 pitch/field zones to target',
                     narrative:        'one short human sentence explaining the tactical idea in live-match language, not analyst language',
-                    read:             'one or two natural, conversational sentences in first person as a competitive cricket mind living this game in real time. React emotionally but plausibly to what just happened: enjoy pressure, regret being hit, feel a wicket opening, acknowledge when a plan got exposed, and state whether you are doubling down or pivoting. Be invested in beating the opponent. No robotic labels, no bullet points, no JSON-like phrasing.',
+                    read:             'one or two natural, conversational sentences in first person as a competitive cricket mind living this game in real time. React emotionally but plausibly to what just happened: enjoy pressure, regret being hit, feel a wicket opening, acknowledge when a plan got exposed, and state whether you are doubling down or pivoting. Be invested in beating the opponent. Respect the exact match length. In a 5-over game, do not call over 3 early and do not suggest passive strike rotation unless the batting side is already clearly ahead. No robotic labels, no bullet points, no JSON-like phrasing.',
                 }
             }
         });
@@ -850,3 +910,7 @@ class TacticalBrainClient {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { TacticalBrainClient };
 }
+
+
+
+
