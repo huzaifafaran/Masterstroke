@@ -46,6 +46,7 @@ const PLAYERS = [
         bowling: { paceOrSpin: 45, accuracy: 40, swingOrTurn: 30, variation: 20, control: 45 },
         fielding: { catching: 75, throwPower: 70, throwAccuracy: 72, agility: 80 },
         physical: { stamina: 92, consistency: 95, matchAwareness: 94 },
+        isOpener: true,
         identity: {
             orthodoxControl: 96, aerialPower: 64, improvisation: 58, strikeRotation: 97,
             yorkerPunish: 62, shortBallPunish: 72, spinRead: 92, paceRead: 90,
@@ -80,6 +81,7 @@ const PLAYERS = [
         bowling: { paceOrSpin: 50, accuracy: 55, swingOrTurn: 40, variation: 35, control: 50 },
         fielding: { catching: 70, throwPower: 65, throwAccuracy: 68, agility: 72 },
         physical: { stamina: 88, consistency: 98, matchAwareness: 96 },
+        isOpener: true,
         identity: {
             orthodoxControl: 98, aerialPower: 68, improvisation: 52, strikeRotation: 92,
             yorkerPunish: 64, shortBallPunish: 70, spinRead: 95, paceRead: 91,
@@ -150,6 +152,7 @@ const PLAYERS = [
         bowling: { paceOrSpin: 50, accuracy: 45, swingOrTurn: 35, variation: 30, control: 42 },
         fielding: { catching: 60, throwPower: 65, throwAccuracy: 60, agility: 55 },
         physical: { stamina: 78, consistency: 72, matchAwareness: 75 },
+        isOpener: true,
         identity: {
             orthodoxControl: 70, aerialPower: 99, improvisation: 58, strikeRotation: 62,
             yorkerPunish: 66, shortBallPunish: 84, spinRead: 76, paceRead: 80,
@@ -217,6 +220,7 @@ const PLAYERS = [
         bowling: { paceOrSpin: 15, accuracy: 15, swingOrTurn: 10, variation: 10, control: 15 },
         fielding: { catching: 68, throwPower: 62, throwAccuracy: 65, agility: 70 },
         physical: { stamina: 85, consistency: 88, matchAwareness: 92 },
+        isOpener: false,
         signature: createAbility(
             'The Prince', ABILITY_TRIGGERS.SITUATIONAL,
             'After 30+ runs: Shot Placement +20, Timing +15, Footwork +10.',
@@ -308,7 +312,7 @@ const PLAYERS = [
         batting: { timing: 35, shotPlacement: 30, power: 40, footwork: 30, composure: 45 },
         bowling: { paceOrSpin: 96, accuracy: 90, swingOrTurn: 88, variation: 82, control: 88 },
         fielding: { catching: 60, throwPower: 62, throwAccuracy: 65, agility: 68 },
-        physical: { stamina: 80, consistency: 88, matchAwareness: 85 },
+        physical: { stamina: 90, consistency: 88, matchAwareness: 95 },
         signature: createAbility(
             'Express Pace', ABILITY_TRIGGERS.SITUATIONAL,
             'First 5 overs: Pace +10, Swing +15. Opposing batter Composure -10.',
@@ -419,6 +423,7 @@ const PLAYERS = [
         bowling: { paceOrSpin: 8, accuracy: 8, swingOrTurn: 6, variation: 8, control: 8 },
         fielding: { catching: 72, throwPower: 68, throwAccuracy: 66, agility: 79 },
         physical: { stamina: 82, consistency: 72, matchAwareness: 74 },
+        isOpener: true,
         signature: null,
         aiTendency: { aggression: 0.76, startSlow: false, accelerateAfterBalls: 0, preferredSide: 'offside', loftedChance: 0.28 }
     },
@@ -432,6 +437,7 @@ const PLAYERS = [
         bowling: { paceOrSpin: 82, accuracy: 80, swingOrTurn: 76, variation: 74, control: 82 },
         fielding: { catching: 83, throwPower: 78, throwAccuracy: 76, agility: 72 },
         physical: { stamina: 92, consistency: 80, matchAwareness: 84 },
+        isOpener: false,
         signature: createAbility(
             'Tall Utility Spells', ABILITY_TRIGGERS.SITUATIONAL,
             'Mild control boost in middle overs.',
@@ -497,6 +503,7 @@ const PLAYERS = [
         bowling: { paceOrSpin: 8, accuracy: 8, swingOrTurn: 5, variation: 5, control: 8 },
         fielding: { catching: 84, throwPower: 74, throwAccuracy: 78, agility: 82 },
         physical: { stamina: 84, consistency: 76, matchAwareness: 78 },
+        isOpener: true,
         signature: createAbility(
             'Powerplay Intent', ABILITY_TRIGGERS.SITUATIONAL,
             'Slight attacking edge in first 2 overs.',
@@ -554,6 +561,7 @@ const PLAYERS = [
         bowling: { paceOrSpin: 8, accuracy: 8, swingOrTurn: 5, variation: 5, control: 8 },
         fielding: { catching: 72, throwPower: 70, throwAccuracy: 68, agility: 78 },
         physical: { stamina: 84, consistency: 68, matchAwareness: 72 },
+        isOpener: true,
         signature: null,
         aiTendency: { aggression: 0.84, startSlow: false, accelerateAfterBalls: 0, preferredSide: 'legside', loftedChance: 0.36 }
     },
@@ -567,6 +575,7 @@ const PLAYERS = [
         bowling: { paceOrSpin: 8, accuracy: 8, swingOrTurn: 5, variation: 5, control: 8 },
         fielding: { catching: 82, throwPower: 72, throwAccuracy: 76, agility: 80 },
         physical: { stamina: 82, consistency: 72, matchAwareness: 74 },
+        isOpener: true,
         signature: null,
         aiTendency: { aggression: 0.68, startSlow: false, accelerateAfterBalls: 10, preferredSide: 'balanced', loftedChance: 0.24 }
     },
@@ -708,6 +717,7 @@ const PLAYERS = [
         bowling: { paceOrSpin: 88, accuracy: 78, swingOrTurn: 82, variation: 76, control: 80 },
         fielding: { catching: 74, throwPower: 78, throwAccuracy: 74, agility: 70 },
         physical: { stamina: 90, consistency: 76, matchAwareness: 78 },
+        isOpener: true,
         signature: createAbility(
             'Hit-the-Deck Bounce', ABILITY_TRIGGERS.SITUATIONAL,
             'Pace utility rises slightly in first spell.',
@@ -715,6 +725,317 @@ const PLAYERS = [
             { paceAdd: 6, contextualBoost: 4 }
         ),
         aiTendency: { newBallAggression: 0.70, bouncerChance: 0.28, yorkerChance: 0.22, slowerBallChance: 0.16 }
+    },
+
+    // --- NEW ROSTER ADDITIONS (20 More Players, Skipping Repeats) ---
+    {
+        id: 'hassan_ali',
+        name: 'Hassan Ali',
+        country: 'Pakistan',
+        role: PLAYER_ROLES.BOWLER,
+        bowlingStyle: BOWLING_STYLE.PACE,
+        batting: { timing: 42, shotPlacement: 35, power: 65, footwork: 38, composure: 50 },
+        bowling: { paceOrSpin: 85, accuracy: 82, swingOrTurn: 78, variation: 88, control: 80 },
+        fielding: { catching: 68, throwPower: 75, throwAccuracy: 72, agility: 75 },
+        physical: { stamina: 85, consistency: 78, matchAwareness: 82 },
+        signature: createAbility(
+            'The Generator', ABILITY_TRIGGERS.SITUATIONAL,
+            'Middle overs wicket-taking boost.',
+            (ms) => ms.currentOver >= 6 && ms.currentOver <= 15,
+            { contextualBoost: 15, yorkerAccuracyAdd: 10 }
+        ),
+        aiTendency: { slowerBallChance: 0.35, yorkerChance: 0.25, bouncerChance: 0.15 }
+    },
+    {
+        id: 'rohit',
+        name: 'Rohit Sharma',
+        country: 'India',
+        role: PLAYER_ROLES.BATTER,
+        bowlingStyle: BOWLING_STYLE.NONE,
+        batting: { timing: 94, shotPlacement: 92, power: 88, footwork: 84, composure: 92 },
+        bowling: { paceOrSpin: 15, accuracy: 15, swingOrTurn: 10, variation: 10, control: 15 },
+        fielding: { catching: 80, throwPower: 70, throwAccuracy: 72, agility: 68 },
+        physical: { stamina: 84, consistency: 90, matchAwareness: 94 },
+        isOpener: true,
+        identity: {
+            shortBallPunish: 98, offSidePrecision: 92, legSideWhip: 88, gapManipulation: 92
+        },
+        signature: createAbility(
+            'Hitman Timing', ABILITY_TRIGGERS.SITUATIONAL,
+            '+15% Power on pulls/hooks. Minimal feet movement penalty -50%.',
+            (ms) => true,
+            { pullPowerMult: 1.15, footworkPenaltyMult: 0.5 }
+        ),
+        aiTendency: { aggression: 0.7, pullShotPreference: 0.8, prefersPace: true }
+    },
+    {
+        id: 'smith',
+        name: 'Steven Smith',
+        country: 'Australia',
+        role: PLAYER_ROLES.BATTER,
+        bowlingStyle: BOWLING_STYLE.SPIN_LEG,
+        batting: { timing: 92, shotPlacement: 95, power: 72, footwork: 98, composure: 95 },
+        bowling: { paceOrSpin: 45, accuracy: 40, swingOrTurn: 55, variation: 45, control: 40 },
+        fielding: { catching: 88, throwPower: 68, throwAccuracy: 75, agility: 82 },
+        physical: { stamina: 94, consistency: 96, matchAwareness: 98 },
+        signature: createAbility(
+            'Unorthodox Genius', ABILITY_TRIGGERS.PASSIVE,
+            'Innovative shot risk -25%. Spin read +15%.',
+            () => true,
+            { innovativeRiskMult: 0.75, spinReadAdd: 15 }
+        ),
+        aiTendency: { shuffleAcross: true, aggression: 0.5, rotateStrike: true }
+    },
+    {
+        id: 'd_mitchell',
+        name: 'Daryll Mitchell',
+        country: 'New Zealand',
+        role: PLAYER_ROLES.ALL_ROUNDER,
+        bowlingStyle: BOWLING_STYLE.MEDIUM,
+        batting: { timing: 85, shotPlacement: 80, power: 82, footwork: 82, composure: 88 },
+        bowling: { paceOrSpin: 72, accuracy: 78, swingOrTurn: 65, variation: 70, control: 75 },
+        fielding: { catching: 82, throwPower: 74, throwAccuracy: 76, agility: 72 },
+        physical: { stamina: 90, consistency: 88, matchAwareness: 90 },
+        signature: null,
+        aiTendency: { aggression: 0.6, straightHitPreference: 0.7 }
+    },
+    {
+        id: 'santner',
+        name: 'Mitchell Santner',
+        country: 'New Zealand',
+        role: PLAYER_ROLES.ALL_ROUNDER,
+        bowlingStyle: BOWLING_STYLE.SPIN_OFF,
+        batting: { timing: 74, shotPlacement: 78, power: 68, footwork: 76, composure: 84 },
+        bowling: { paceOrSpin: 78, accuracy: 92, swingOrTurn: 85, variation: 75, control: 94 },
+        fielding: { catching: 86, throwPower: 78, throwAccuracy: 88, agility: 84 },
+        physical: { stamina: 88, consistency: 92, matchAwareness: 92 },
+        signature: createAbility(
+            'Economy King', ABILITY_TRIGGERS.PASSIVE,
+            'Control +15, Economy focus.',
+            () => true,
+            { controlAdd: 15, buildPressure: 0.1 }
+        ),
+        aiTendency: { flatTrajectory: 0.7, armBallFrequency: 0.3 }
+    },
+    {
+        id: 'hardik',
+        name: 'Hardik Pandya',
+        country: 'India',
+        role: PLAYER_ROLES.ALL_ROUNDER,
+        bowlingStyle: BOWLING_STYLE.PACE,
+        batting: { timing: 84, shotPlacement: 78, power: 92, footwork: 80, composure: 86 },
+        bowling: { paceOrSpin: 86, accuracy: 78, swingOrTurn: 72, variation: 80, control: 78 },
+        fielding: { catching: 84, throwPower: 88, throwAccuracy: 82, agility: 86 },
+        physical: { stamina: 88, consistency: 78, matchAwareness: 88 },
+        signature: createAbility(
+            'Kung-Fu Pandya', ABILITY_TRIGGERS.SITUATIONAL,
+            'Final 5 overs: Power +15, Timing +10.',
+            (ms) => ms.currentOver >= Math.max(0, ms.totalOvers - 5),
+            { powerAdd: 15, timingAdd: 10 }
+        ),
+        aiTendency: { aggression: 0.8, finisherMode: true, bouncerChance: 0.3 }
+    },
+    {
+        id: 'russell',
+        name: 'Andre Russell',
+        country: 'West Indies',
+        role: PLAYER_ROLES.ALL_ROUNDER,
+        bowlingStyle: BOWLING_STYLE.PACE,
+        batting: { timing: 78, shotPlacement: 70, power: 99, footwork: 72, composure: 78 },
+        bowling: { paceOrSpin: 90, accuracy: 74, swingOrTurn: 60, variation: 82, control: 72 },
+        fielding: { catching: 78, throwPower: 92, throwAccuracy: 78, agility: 75 },
+        physical: { stamina: 82, consistency: 68, matchAwareness: 80 },
+        signature: createAbility(
+            'Dre Russ Muscle', ABILITY_TRIGGERS.PASSIVE,
+            'Power +30, Mis-hit six conversion +20%.',
+            () => true,
+            { powerAdd: 30, misHitSixBias: 1.2 }
+        ),
+        aiTendency: { aggression: 0.95, finisherMode: true, loftedChance: 0.6 }
+    },
+    {
+        id: 'pooran',
+        name: 'Nicholas Pooran',
+        country: 'West Indies',
+        role: PLAYER_ROLES.WICKETKEEPER,
+        bowlingStyle: BOWLING_STYLE.NONE,
+        batting: { timing: 86, shotPlacement: 84, power: 90, footwork: 86, composure: 78 },
+        bowling: { paceOrSpin: 10, accuracy: 10, swingOrTurn: 15, variation: 15, control: 10 },
+        fielding: { catching: 82, throwPower: 78, throwAccuracy: 75, agility: 88 },
+        physical: { stamina: 92, consistency: 94, matchAwareness: 98 },
+        isOpener: false,
+        signature: null,
+        aiTendency: { aggression: 0.65, preferredSide: 'offside', loftedChance: 0.4 }
+    },
+    {
+        id: 'roy',
+        name: 'Jason Roy',
+        country: 'England',
+        role: PLAYER_ROLES.BATTER,
+        bowlingStyle: BOWLING_STYLE.NONE,
+        batting: { timing: 82, shotPlacement: 78, power: 88, footwork: 78, composure: 72 },
+        bowling: { paceOrSpin: 10, accuracy: 10, swingOrTurn: 10, variation: 10, control: 10 },
+        fielding: { catching: 74, throwPower: 82, throwAccuracy: 76, agility: 78 },
+        physical: { stamina: 82, consistency: 78, matchAwareness: 82 },
+        isOpener: true,
+        signature: null,
+        aiTendency: { aggression: 0.95, preferredSide: 'straight' }
+    },
+    {
+        id: 'henry',
+        name: 'Matt Henry',
+        country: 'New Zealand',
+        role: PLAYER_ROLES.BOWLER,
+        bowlingStyle: BOWLING_STYLE.PACE,
+        batting: { timing: 35, shotPlacement: 30, power: 45, footwork: 32, composure: 55 },
+        bowling: { paceOrSpin: 88, accuracy: 88, swingOrTurn: 85, variation: 78, control: 86 },
+        fielding: { catching: 65, throwPower: 72, throwAccuracy: 70, agility: 68 },
+        physical: { stamina: 86, consistency: 84, matchAwareness: 84 },
+        signature: null,
+        aiTendency: { newBallAggression: 0.8, swingSetupOvers: true }
+    },
+    {
+        id: 'hetmyer',
+        name: 'Shimron Hetmyer',
+        country: 'West Indies',
+        role: PLAYER_ROLES.BATTER,
+        bowlingStyle: BOWLING_STYLE.NONE,
+        batting: { timing: 80, shotPlacement: 76, power: 88, footwork: 78, composure: 75 },
+        bowling: { paceOrSpin: 5, accuracy: 5, swingOrTurn: 5, variation: 5, control: 5 },
+        fielding: { catching: 72, throwPower: 70, throwAccuracy: 68, agility: 78 },
+        physical: { stamina: 82, consistency: 72, matchAwareness: 74 },
+        signature: null,
+        aiTendency: { aggression: 0.8, preferredSide: 'legside' }
+    },
+    {
+        id: 'rutherford',
+        name: 'Sherfane Rutherford',
+        country: 'West Indies',
+        role: PLAYER_ROLES.ALL_ROUNDER,
+        bowlingStyle: BOWLING_STYLE.MEDIUM,
+        batting: { timing: 76, shotPlacement: 72, power: 86, footwork: 74, composure: 82 },
+        bowling: { paceOrSpin: 70, accuracy: 72, swingOrTurn: 60, variation: 75, control: 72 },
+        fielding: { catching: 78, throwPower: 75, throwAccuracy: 72, agility: 75 },
+        physical: { stamina: 84, consistency: 76, matchAwareness: 84 },
+        signature: createAbility(
+            'Calm Finisher', ABILITY_TRIGGERS.SITUATIONAL,
+            'Runs needed < 30: Composure +20, Power +10.',
+            (ms) => ms.runsNeeded > 0 && ms.runsNeeded <= 30,
+            { composureAdd: 20, powerAdd: 10 }
+        ),
+        aiTendency: { aggression: 0.75, finisherMode: true }
+    },
+    {
+        id: 'dube',
+        name: 'Shivam Dube',
+        country: 'India',
+        role: PLAYER_ROLES.ALL_ROUNDER,
+        bowlingStyle: BOWLING_STYLE.MEDIUM,
+        batting: { timing: 78, shotPlacement: 74, power: 94, footwork: 68, composure: 80 },
+        bowling: { paceOrSpin: 68, accuracy: 65, swingOrTurn: 55, variation: 60, control: 62 },
+        fielding: { catching: 70, throwPower: 72, throwAccuracy: 68, agility: 65 },
+        physical: { stamina: 80, consistency: 72, matchAwareness: 78 },
+        signature: createAbility(
+            'Spin Basher', ABILITY_TRIGGERS.SITUATIONAL,
+            'Vs Spin: Power +20, Lofted Timing +15%.',
+            (ms) => !isPaceBowler(getPlayerById(ms.bowlerId)),
+            { powerAdd: 20, loftedTimingMult: 1.15 }
+        ),
+        aiTendency: { aggression: 0.82, spinLoftedPreference: 0.9 }
+    },
+    {
+        id: 'salman_mirza',
+        name: 'Salman Mirza',
+        country: 'Pakistan',
+        role: PLAYER_ROLES.BOWLER,
+        bowlingStyle: BOWLING_STYLE.PACE,
+        batting: { timing: 25, shotPlacement: 20, power: 45, footwork: 25, composure: 45 },
+        bowling: { paceOrSpin: 86, accuracy: 74, swingOrTurn: 72, variation: 82, control: 70 },
+        fielding: { catching: 58, throwPower: 80, throwAccuracy: 70, agility: 72 },
+        physical: { stamina: 82, consistency: 70, matchAwareness: 72 },
+        signature: null,
+        aiTendency: { yorkerChance: 0.4, bouncerChance: 0.25 }
+    },
+    {
+        id: 'hasaranga',
+        name: 'Wanindu Hasaranga',
+        country: 'Sri Lanka',
+        role: PLAYER_ROLES.ALL_ROUNDER,
+        bowlingStyle: BOWLING_STYLE.SPIN_LEG,
+        batting: { timing: 74, shotPlacement: 72, power: 80, footwork: 78, composure: 78 },
+        bowling: { paceOrSpin: 84, accuracy: 88, swingOrTurn: 92, variation: 95, control: 86 },
+        fielding: { catching: 80, throwPower: 78, throwAccuracy: 80, agility: 88 },
+        physical: { stamina: 90, consistency: 84, matchAwareness: 92 },
+        signature: createAbility(
+            'Googly Master', ABILITY_TRIGGERS.PASSIVE,
+            'Googly disguise +30%, Turn +15.',
+            () => true,
+            { variationDisguiseMult: 1.3, turnAdd: 15 }
+        ),
+        aiTendency: { googlyFrequency: 0.4, flightedChance: 0.25 }
+    },
+    {
+        id: 'k_mendis',
+        name: 'Kusal Mendis',
+        country: 'Sri Lanka',
+        role: PLAYER_ROLES.WICKETKEEPER,
+        bowlingStyle: BOWLING_STYLE.NONE,
+        batting: { timing: 84, shotPlacement: 86, power: 78, footwork: 86, composure: 76 },
+        bowling: { paceOrSpin: 10, accuracy: 10, swingOrTurn: 10, variation: 10, control: 10 },
+        fielding: { catching: 82, throwPower: 70, throwAccuracy: 72, agility: 80 },
+        physical: { stamina: 85, consistency: 72, matchAwareness: 78 },
+        signature: null,
+        aiTendency: { aggression: 0.7, startSlow: false }
+    },
+    {
+        id: 'shanaka',
+        name: 'Dasun Shanaka',
+        country: 'Sri Lanka',
+        role: PLAYER_ROLES.ALL_ROUNDER,
+        bowlingStyle: BOWLING_STYLE.MEDIUM,
+        batting: { timing: 78, shotPlacement: 74, power: 88, footwork: 74, composure: 88 },
+        bowling: { paceOrSpin: 74, accuracy: 78, swingOrTurn: 68, variation: 80, control: 78 },
+        fielding: { catching: 80, throwPower: 82, throwAccuracy: 78, agility: 75 },
+        physical: { stamina: 88, consistency: 80, matchAwareness: 94 },
+        signature: createAbility(
+            'Pressure Performer', ABILITY_TRIGGERS.SITUATIONAL,
+            'High pressure: Timing +15, Composure +20.',
+            (ms) => ms.pressure > 0.6,
+            { timingAdd: 15, composureAdd: 20 }
+        ),
+        aiTendency: { aggression: 0.75, finisherMode: true }
+    },
+    {
+        id: 'k_perera',
+        name: 'Kusal Perera',
+        country: 'Sri Lanka',
+        role: PLAYER_ROLES.WICKETKEEPER,
+        bowlingStyle: BOWLING_STYLE.NONE,
+        batting: { timing: 82, shotPlacement: 78, power: 86, footwork: 84, composure: 72 },
+        bowling: { paceOrSpin: 5, accuracy: 5, swingOrTurn: 5, variation: 5, control: 5 },
+        fielding: { catching: 78, throwPower: 72, throwAccuracy: 70, agility: 82 },
+        physical: { stamina: 84, consistency: 78, matchAwareness: 84 },
+        isOpener: true,
+        signature: null,
+        aiTendency: { aggression: 0.92, preferredSide: 'legside' }
+    },
+    {
+        id: 'ajmal',
+        name: 'Saeed Ajmal',
+        country: 'Pakistan',
+        role: PLAYER_ROLES.BOWLER,
+        bowlingStyle: BOWLING_STYLE.SPIN_OFF,
+        batting: { timing: 28, shotPlacement: 22, power: 35, footwork: 25, composure: 50 },
+        bowling: { paceOrSpin: 88, accuracy: 94, swingOrTurn: 96, variation: 98, control: 90 },
+        fielding: { catching: 55, throwPower: 60, throwAccuracy: 65, agility: 58 },
+        physical: { stamina: 85, consistency: 92, matchAwareness: 94 },
+        signature: createAbility(
+            'Doosra King', ABILITY_TRIGGERS.PASSIVE,
+            'Doosra turn +25, Disguise +40%.',
+            () => true,
+            { doosraTurnAdd: 25, variationDisguiseMult: 1.4 }
+        ),
+        aiTendency: { doosraFrequency: 0.45, armBallChance: 0.2 }
     }
 ];
 
@@ -805,7 +1126,26 @@ const PLAYER_ALLOWED_SHOTS = Object.freeze({
     pollard: ['defensive', 'drive', 'pull', 'lofted', 'scoop', 'slog', 'slog_sweep', 'helicopter'],
     umar_gul: ['defensive', 'drive', 'lofted'],
     lendl_simmons: ['defensive', 'drive', 'pull', 'cut', 'flick', 'lofted'],
-    marco_jansen: ['defensive', 'drive', 'pull', 'lofted']
+    marco_jansen: ['defensive', 'drive', 'pull', 'lofted'],
+    hassan_ali: ['defensive', 'drive', 'lofted'],
+    rohit: ['defensive', 'drive', 'pull', 'cut', 'lofted', 'flick', 'straight_drive', 'on_drive'],
+    smith: ['defensive', 'drive', 'cut', 'flick', 'lofted', 'scoop', 'reverse_sweep'],
+    d_mitchell: ['defensive', 'drive', 'pull', 'lofted'],
+    santner: ['defensive', 'drive', 'cut', 'lofted'],
+    hardik: ['defensive', 'drive', 'pull', 'lofted', 'flick'],
+    russell: ['defensive', 'drive', 'pull', 'lofted', 'slog'],
+    pooran: ['defensive', 'drive', 'pull', 'cut', 'lofted', 'scoop'],
+    roy: ['defensive', 'drive', 'pull', 'cut', 'lofted'],
+    henry: ['defensive', 'drive', 'lofted'],
+    hetmyer: ['defensive', 'drive', 'pull', 'lofted', 'slog'],
+    rutherford: ['defensive', 'drive', 'pull', 'lofted'],
+    dube: ['defensive', 'drive', 'pull', 'lofted', 'slog'],
+    salman_mirza: ['defensive', 'drive', 'lofted'],
+    hasaranga: ['defensive', 'drive', 'cut', 'lofted', 'slog_sweep'],
+    k_mendis: ['defensive', 'drive', 'cut', 'pull', 'lofted'],
+    shanaka: ['defensive', 'drive', 'pull', 'lofted'],
+    k_perera: ['defensive', 'drive', 'pull', 'lofted', 'slog'],
+    ajmal: ['defensive', 'drive', 'lofted']
 });
 
 const PLAYER_ALLOWED_DELIVERIES = Object.freeze({
@@ -839,7 +1179,19 @@ const PLAYER_ALLOWED_DELIVERIES = Object.freeze({
     pollard: ['good_length', 'full_length', 'slower_ball', 'off_cutter'],
     umar_gul: ['yorker', 'slower_ball', 'knuckle_ball', 'off_cutter', 'good_length', 'bouncer'],
     lendl_simmons: ['good_length', 'full_length', 'slower_ball'],
-    marco_jansen: ['good_length', 'full_length', 'bouncer', 'slower_bouncer', 'outswing', 'off_cutter']
+    marco_jansen: ['good_length', 'full_length', 'bouncer', 'slower_bouncer', 'outswing', 'off_cutter'],
+    hassan_ali: ['good_length', 'full_length', 'yorker', 'slower_ball', 'bouncer', 'inswing'],
+    d_mitchell: ['good_length', 'full_length', 'slower_ball'],
+    santner: ['stock', 'arm_ball', 'flighted', 'top_spinner'],
+    hardik: ['good_length', 'full_length', 'bouncer', 'yorker', 'slower_ball'],
+    russell: ['yorker', 'bouncer', 'good_length', 'slower_ball'],
+    henry: ['good_length', 'full_length', 'outswing', 'inswing', 'bouncer'],
+    rutherford: ['good_length', 'full_length', 'slower_ball', 'off_cutter'],
+    dube: ['good_length', 'full_length', 'slower_ball'],
+    salman_mirza: ['yorker', 'bouncer', 'good_length', 'full_length'],
+    hasaranga: ['stock', 'googly', 'flipper', 'slider', 'flighted'],
+    shanaka: ['good_length', 'full_length', 'slower_ball', 'off_cutter'],
+    ajmal: ['stock', 'doosra', 'arm_ball', 'carrom_ball', 'flighted', 'top_spinner']
 });
 
 PLAYERS.forEach((player) => {

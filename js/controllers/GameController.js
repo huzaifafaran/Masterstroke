@@ -188,7 +188,7 @@ class GameController {
 
         const result = {
             outcome,
-            commentary: comm.lines.join(' '),
+            commentary: comm.lines, // Returning array of { speaker, energy, text }
             state: this.engine.state
         };
 

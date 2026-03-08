@@ -80,14 +80,48 @@
                 <div class="setup-lineup">
                     <h3>Your Bowling Rotation</h3>
                     <div id="bowling-order-list" class="lineup-list"></div>
-                    <p class="lineup-note">Only specialist bowlers and all-rounders are listed. Order defines preferred over rotation.</p>
+                    <p class="lineup-note" id="bowling-note">Only specialist bowlers and all-rounders are listed. Order defines preferred over rotation. (Min 5 bowlers required)</p>
                 </div>
+                <div id="setup-error" class="setup-error hidden"></div>
                 <div class="setup-actions">
                     <button id="btn-back-menu">← Back</button>
                     <button id="btn-start-match"><span class="black-emoji">🏏</span> Start Match</button>
                 </div>
             </div>
         </div>
+
+        <!-- ═══════ CUSTOM TEAM PICKER MODAL ═══════ -->
+        <div id="custom-team-overlay" class="hidden">
+            <div class="custom-team-modal">
+                <div class="modal-header">
+                    <h2>Pick Your 11 Players</h2>
+                    <div class="modal-counter">Selected: <span id="custom-player-count-header">0</span> / 11</div>
+                </div>
+                <div class="player-filter">
+                    <div class="category-tabs" id="category-tabs">
+                        <button class="category-tab active" data-role="all">All</button>
+                        <button class="category-tab" data-role="Batter">Batsmen</button>
+                        <button class="category-tab" data-role="Wicketkeeper">WK</button>
+                        <button class="category-tab" data-role="All-Rounder">All-rounders</button>
+                        <button class="category-tab" data-role="Bowler">Bowlers</button>
+                    </div>
+                    <div class="subcategory-filters" id="subcategory-filters"></div>
+                    <input type="text" id="player-search" placeholder="Search players by name or country...">
+                </div>
+                <div id="roster-grid" class="roster-grid"></div>
+                <div class="picker-footer">
+                <div id="picker-validation-info" class="picker-validation-info"></div>
+                <div class="picker-controls">
+                    <span class="selection-count">Selected: <span id="custom-player-count">0</span>/11</span>
+                    <div class="picker-buttons">
+                        <button id="btn-cancel-custom" class="btn btn-secondary">Cancel</button>
+                        <button id="btn-confirm-custom" class="btn btn-primary" disabled>Confirm Team</button>
+                    </div>
+                </div>
+            </div>
+            </div>
+        </div>
+
 
         <!-- ═══════ GAME SCREEN ═══════ -->
         <div id="game-screen" class="screen">

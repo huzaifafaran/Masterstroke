@@ -26,6 +26,10 @@ class CricketLegendsApp {
         this.lastTimingZones = null;
         this.team1BattingOrder = [];
         this.team1BowlingRotation = [];
+        this.customTeamPlayers = [];
+        this.isCustomTeamPicking = false;
+        this.currentCategory = 'all';
+        this.currentSubcategory = 'all';
         // this.debugMode = true;
         this.debugMode = false;
         this.debugLogBuffer = [];
@@ -220,6 +224,58 @@ class CricketLegendsApp {
 
         document.getElementById('btn-back-menu')?.addEventListener('click', () => this.showScreen('menu-screen'));
         document.getElementById('btn-play-again')?.addEventListener('click', () => window.location.reload());
+
+        document.getElementById('player-search')?.addEventListener('input', (e) => this.renderRoster(e.target.value));
+        document.getElementById('btn-cancel-custom')?.addEventListener('click', () => {
+            document.getElementById('custom-team-overlay').classList.add('hidden');
+        });
+        document.getElementById('btn-confirm-custom')?.addEventListener('click', () => this.confirmCustomTeam());
+
+        this.bindCategoryEvents();
+    }
+
+    bindCategoryEvents() {
+        const tabs = document.querySelectorAll('.category-tab');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                this.currentCategory = tab.dataset.role;
+                this.currentSubcategory = 'all';
+                this.updateSubcategoryFilters();
+                this.renderRoster(document.getElementById('player-search').value);
+            });
+        });
+    }
+
+    updateSubcategoryFilters() {
+        const container = document.getElementById('subcategory-filters');
+        if (!container) return;
+        container.innerHTML = '';
+
+        let subcats = [];
+        if (this.currentCategory === 'Batter') {
+            subcats = [{ id: 'all', name: 'All Batsmen' }, { id: 'opener', name: 'Openers' }, { id: 'middle', name: 'Middle Order' }];
+        } else if (this.currentCategory === 'Bowler') {
+            subcats = [{ id: 'all', name: 'All Bowlers' }, { id: 'pace', name: 'Pacers' }, { id: 'spin', name: 'Spinners' }];
+        } else if (this.currentCategory === 'All-Rounder') {
+            subcats = [{ id: 'all', name: 'All AR' }, { id: 'pace', name: 'Pace AR' }, { id: 'spin', name: 'Spin AR' }];
+        }
+
+        if (subcats.length === 0) return;
+
+        subcats.forEach(sub => {
+            const btn = document.createElement('button');
+            btn.className = `sub-filter ${this.currentSubcategory === sub.id ? 'active' : ''}`;
+            btn.textContent = sub.name;
+            btn.addEventListener('click', () => {
+                container.querySelectorAll('.sub-filter').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                this.currentSubcategory = sub.id;
+                this.renderRoster(document.getElementById('player-search').value);
+            });
+            container.appendChild(btn);
+        });
     }
 
     populateTeamSelectors() {
@@ -233,6 +289,12 @@ class CricketLegendsApp {
                 opt.textContent = team.name;
                 sel.appendChild(opt);
             });
+            
+            // Add Custom Team option
+            const customOpt = document.createElement('option');
+            customOpt.value = 'custom';
+            customOpt.textContent = '★ Custom Team (Pick 11)';
+            sel.appendChild(customOpt);
         });
         const sel2 = document.getElementById('sel-team2');
         if (sel2) sel2.value = 'world_xi';
@@ -265,6 +327,125 @@ class CricketLegendsApp {
         this.initializeQuickMatchLineups();
     }
 
+    openPlayerPicker() {
+        this.customTeamPlayers = [];
+        this.currentCategory = 'all';
+        this.currentSubcategory = 'all';
+        document.querySelectorAll('.category-tab').forEach(t => t.classList.toggle('active', t.dataset.role === 'all'));
+        this.updateSubcategoryFilters();
+        
+        document.getElementById('custom-team-overlay').classList.remove('hidden');
+        document.getElementById('player-search').value = '';
+        this.renderRoster();
+        this.updatePlayerPickerUI();
+    }
+
+    renderRoster(filter = '') {
+        const grid = document.getElementById('roster-grid');
+        if (!grid) return;
+        grid.innerHTML = '';
+
+        const searchTerm = filter.toLowerCase();
+        let players = PLAYERS.filter(p => 
+            p.name.toLowerCase().includes(searchTerm) || 
+            (p.country && p.country.toLowerCase().includes(searchTerm))
+        );
+
+        // Category Filter
+        if (this.currentCategory !== 'all') {
+            players = players.filter(p => p.role === this.currentCategory);
+        }
+
+        // Subcategory Filter
+        if (this.currentSubcategory !== 'all') {
+            if (this.currentCategory === 'Batter') {
+                if (this.currentSubcategory === 'opener') players = players.filter(p => p.isOpener);
+                else if (this.currentSubcategory === 'middle') players = players.filter(p => !p.isOpener);
+            } else if (this.currentCategory === 'Bowler' || this.currentCategory === 'All-Rounder') {
+                const isSpin = (style) => style && style.includes('Spin');
+                if (this.currentSubcategory === 'spin') players = players.filter(p => isSpin(p.bowlingStyle));
+                else if (this.currentSubcategory === 'pace') players = players.filter(p => !isSpin(p.bowlingStyle) && p.bowlingStyle !== 'None');
+            }
+        }
+
+        players.forEach(player => {
+            const isSelected = this.customTeamPlayers.includes(player.id);
+            const item = document.createElement('div');
+            item.className = `roster-item ${isSelected ? 'selected' : ''}`;
+            
+            const stats = player.batting ? `
+                <div class="roster-player-stats">
+                    <span class="roster-stat-badge">BAT: ${player.batting.timing}</span>
+                    <span class="roster-stat-badge">BWL: ${player.bowling ? player.bowling.accuracy : '-'}</span>
+                </div>
+            ` : '';
+
+            item.innerHTML = `
+                <div class="roster-player-name">${player.name}</div>
+                <div class="roster-player-role">${player.role} | ${player.country}</div>
+                ${stats}
+            `;
+
+            item.addEventListener('click', () => this.togglePlayerSelection(player.id));
+            grid.appendChild(item);
+        });
+    }
+
+    togglePlayerSelection(playerId) {
+        const idx = this.customTeamPlayers.indexOf(playerId);
+        if (idx > -1) {
+            this.customTeamPlayers.splice(idx, 1);
+        } else if (this.customTeamPlayers.length < 11) {
+            this.customTeamPlayers.push(playerId);
+        }
+        this.renderRoster(document.getElementById('player-search').value);
+        this.updatePlayerPickerUI();
+    }
+
+    updatePlayerPickerUI() {
+        const count = this.customTeamPlayers.length;
+        const selectedPlayers = this.customTeamPlayers.map(id => getPlayerById(id));
+        
+        const bowlerCount = selectedPlayers.filter(p => this.isBowlingEligible(p)).length;
+        const wkCount = selectedPlayers.filter(p => p.role === PLAYER_ROLES.WICKETKEEPER).length;
+        
+        if (document.getElementById('custom-player-count')) document.getElementById('custom-player-count').textContent = count;
+        if (document.getElementById('custom-player-count-header')) document.getElementById('custom-player-count-header').textContent = count;
+        
+        const validationHost = document.getElementById('picker-validation-info');
+        if (validationHost) {
+            validationHost.innerHTML = `
+                <div class="validation-item ${count === 11 ? 'valid' : ''}">Players: ${count}/11</div>
+                <div class="validation-item ${bowlerCount >= 5 ? 'valid' : ''}">Bowlers: ${bowlerCount}/5+</div>
+                <div class="validation-item ${wkCount >= 1 ? 'valid' : ''}">Keeper: ${wkCount}/1+</div>
+            `;
+        }
+
+        const isValid = count === 11 && bowlerCount >= 5 && wkCount >= 1;
+        document.getElementById('btn-confirm-custom').disabled = !isValid;
+    }
+
+    confirmCustomTeam() {
+        if (this.customTeamPlayers.length !== 11) return;
+        document.getElementById('custom-team-overlay').classList.add('hidden');
+        
+        // Temporarily register custom team
+        TEAMS['custom'] = {
+            name: 'Custom Team',
+            color: '#3b82f6',
+            players: [...this.customTeamPlayers]
+        };
+        
+        this.selectedTeam1 = 'custom';
+        const sel1 = document.getElementById('sel-team1');
+        if (sel1) sel1.value = 'custom';
+        
+        // Force initial batting order to mirror selection sequence
+        this.team1BattingOrder = [...this.customTeamPlayers];
+        
+        this.initializeQuickMatchLineups();
+    }
+
     isBowlingEligible(player) {
         if (!player) return false;
         if (player.bowlingStyle === BOWLING_STYLE.NONE) return false;
@@ -274,6 +455,11 @@ class CricketLegendsApp {
     }
 
     initializeQuickMatchLineups() {
+        if (this.selectedTeam1 === 'custom' && this.customTeamPlayers.length === 0) {
+            this.openPlayerPicker();
+            return;
+        }
+
         const teamPlayers = getTeamPlayers(this.selectedTeam1);
         if (!teamPlayers.length) return;
 
@@ -317,6 +503,7 @@ class CricketLegendsApp {
                 <div class="lineup-actions">
                     <button type="button" class="lineup-move-btn" data-type="${type}" data-dir="-1" data-index="${idx}" ${idx === 0 ? 'disabled' : ''}>Up</button>
                     <button type="button" class="lineup-move-btn" data-type="${type}" data-dir="1" data-index="${idx}" ${idx === ids.length - 1 ? 'disabled' : ''}>Down</button>
+                    ${type === 'bowling' ? `<button type="button" class="lineup-drop-btn" data-index="${idx}">Drop</button>` : ''}
                 </div>
             </div>
         `).join('');
@@ -337,6 +524,14 @@ class CricketLegendsApp {
 
         bindMoves(battingHost);
         bindMoves(bowlingHost);
+
+        bowlingHost.querySelectorAll('.lineup-drop-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const index = parseInt(btn.dataset.index, 10);
+                this.team1BowlingRotation.splice(index, 1);
+                this.renderLineupEditors();
+            });
+        });
     }
 
     // ── Start Match ────────────────────────────────────────
@@ -344,6 +539,18 @@ class CricketLegendsApp {
         const feed = document.getElementById('commentary-feed');
         if (feed) feed.innerHTML = '';
         this.resetDebugOverlay();
+
+        // Validate bowling minimum
+        if (this.team1BowlingRotation.length < 5) {
+            const errorEl = document.getElementById('setup-error');
+            if (errorEl) {
+                errorEl.textContent = 'At least 5 bowlers are required to start the match!';
+                errorEl.classList.remove('hidden');
+                setTimeout(() => errorEl.classList.add('hidden'), 4000);
+            }
+            return;
+        }
+
         this.appendDebugLog('startMatch', `mode=${this.gameMode} team1=${this.selectedTeam1} team2=${this.selectedTeam2}`);
 
         this.initializeQuickMatchLineups();
@@ -441,7 +648,12 @@ class CricketLegendsApp {
         this.gameController.on('ballComplete', (data) => {
             const outcome = data.outcome;
             // Add ball commentary immediately so it always appears before any over-end entry.
-            this.addCommentary(data.commentary, outcome.wicket ? 'wicket' : outcome.six ? 'six' : outcome.boundary ? 'four' : 'normal');
+            const typeClass = outcome.wicket ? 'wicket' : outcome.six ? 'six' : outcome.boundary ? 'four' : 'normal';
+            if (Array.isArray(data.commentary)) {
+                data.commentary.forEach(obj => this.addCommentary(obj.text, `${typeClass} speaker-${obj.speaker} energy-${obj.energy}`));
+            } else {
+                this.addCommentary(data.commentary, typeClass);
+            }
             this.renderer.animateBall(outcome, () => {
                 if (outcome.wicket) this.renderer.wicketEffect();
                 if (outcome.six) this.renderer.boundaryEffect(true);
@@ -1129,7 +1341,7 @@ class CricketLegendsApp {
             const endObj = this.commentary.endOfOverLine(context, bowlerObj);
             if (endObj && endObj.lines) {
                 setTimeout(() => {
-                    this.addCommentary(endObj.lines.join(' '), 'over');
+                    endObj.lines.forEach(obj => this.addCommentary(obj.text, `over speaker-${obj.speaker} energy-${obj.energy}`));
                 }, 0);
                 return;
             }
@@ -1229,5 +1441,3 @@ document.addEventListener('DOMContentLoaded', () => {
     window.app = new CricketLegendsApp();
     window.app.init();
 });
-
-
