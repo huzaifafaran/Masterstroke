@@ -198,18 +198,46 @@ Hidden 0-100 attributes dictate behavioral biases:
 
 ### 9.2 Elite Signature Abilities
 The engine checks `signature.condition(matchState)` every ball to apply localized mathematical overrides. Examples:
-*   **Virat Kohli (Chase Master):** When `Innings 2 + RRR > 6`, forces `Timing *= 1.2` and `Composure += 25`.
-*   **AB de Villiers (360 Mastery):** Permanently suppresses the `innovativeMistimePenaltyMult` by 50% and unlocks 8 extra shot angles.
-*   **Chris Gayle (Universe Boss):** Landing 2 consecutive boundaries injects a raw `+20 Power` and scales the physical 3D distance of sixes by `1.15x`.
-*   **Jasprit Bumrah (Death Overs Precision):** Final 3 overs trigger a pure tracking buff: `Yorker Accuracy +28`, `Pace +8`, `Control +10`.
-*   **Lasith Malinga (Death Over Specialist):** Outs 16-20 trigger: `Yorker tracking +30`, `Slower Ball disguise +40%`.
-*   **Wasim Akram (Sultan of Swing):** Bypasses the ball-age logic, triggering devastating raw reverse swing mathematics at ball 25 instead of 40 (+25 swing).
-*   **MS Dhoni (Captain Cool):** Allows an activatable "Helicopter" buff granting `+40 Power` to yorker-length deliveries, exclusively.
-*   **Shane Warne (Leg Spin Sorcery):** Base turn +15, Air drift +25%, Googly tracking +20.
+*   **Virat Kohli:** Chase Master. 1.2x timing/composure in Innings 2.
+*   **AB de Villiers:** 360 Mastery. Permanent Innovative shot buff.
+*   **Chris Gayle:** Universe Boss. Power spikes after boundaries.
+*   **Shane Warne:** Leg Spin Sorcery. Enhanced turn and drift.
+*   **Wasim Akram:** Sultan of Swing. Early reverse swing mathematics.
 
 ---
 
-## 10. The LLM Tactical Brain (`TacticalBrainClient.js`)
+## 10. The Elite Director Engine (V3.3 Commentary)
+
+The V3.3 update replaces static outcome strings with a holistically constructed narrative system that treats physics as the core reason for every line.
+
+### 10.1 Structured Generation Flow
+Every ball generates a "Primary Call" and an "Analyst Insight" (Secondary Call):
+1.  **Event Modeling:** Synthesis of `contactType`, `timingDetail`, `shotType`, and `geography`.
+2.  **Phrase Chaining:** Clauses are pulled from archetypal phrase banks (e.g., power hitters "hammer" while timers "caress").
+3.  **Elite Scoring:** A candidate selection algorithm scores thousands of permutations based on detail richness, sentence structure, and semantic freshness to ensure zero repetition.
+
+### 10.2 Global Physics Integration
+- **Miscue Logic:** If `contactType` is `weak`, the commentary natively embeds the reason (e.g., *"Miscued it off the toe-end"*).
+- **Dismissal Physics:** Bowled outcomes now branch specifically based on whether the batter was beaten for pace (*"Beaten for sheer pace!"*) or chopped it on (*"Chopped on! Inside edge onto the stumps"*).
+
+---
+
+## 11. Custom Squad & Team Selection Logic
+
+The game now features a fully player-selected 11-man squad system.
+
+### 11.1 Roster Categorization
+- **Categories:** Batsmen, Bowlers, All-rounders, Wicket keepers.
+- **Sub-filters:** Openers, Middle Order, Pacers, Spinners.
+- **Constraints:** Enforces exactly 11 players, at least 1 Wicketkeeper, and a minimum of 5 Bowlers before the match can begin.
+
+### 11.2 Sequence Batting Order
+The batting order is no longer static. The `app.js` logic tracks the exact sequence of clicks in the selection modal; the player selected 1st becomes the 1st opener, and so on.
+
+---
+
+## 12. The LLM Tactical Brain (`TacticalBrainClient.js`)
+
 
 An advanced neuro-symbolic engine parses live simulation telemetry.
 
