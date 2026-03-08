@@ -811,14 +811,15 @@ class BattingSystem {
         });
 
         const field = this.resolveFieldResult({
-            contact,
-            trajectory,
-            shot,
-            timing,
-            delivery,
-            batter,
-            context
-        });
+        contact,
+        trajectory,
+        shot,
+        timing,
+        delivery,
+        batter,
+        context,
+        matchupScore
+    });
 
         // Final guarantee requested by gameplay tuning:
         // perfect + lofted should never resolve to a dot/wicket path.
@@ -1150,7 +1151,7 @@ class BattingSystem {
     // ------------------------------------------------------------
     // Field interception model
     // ------------------------------------------------------------
-    resolveFieldResult({ contact, trajectory, shot, timing, delivery, batter, context }) {
+    resolveFieldResult({ contact, trajectory, shot, timing, delivery, batter, context, matchupScore }) {
         const fieldDensity = this.getFieldDensity(context, trajectory.angle, shot.category);
         const zone = this.getAngleZone(trajectory.angle);
         const pitchMods = this.getPitchTrajectoryModifiers(context?.pitch || this.engine.pitch);
@@ -1166,7 +1167,8 @@ class BattingSystem {
             fieldDensity,
             zone,
             context,
-            batter
+            batter,
+            matchupScore
         });
         if (dismissal.isWicket) {
             return {
@@ -1228,6 +1230,38 @@ class BattingSystem {
             }
         }
 
+        // Good timing + non-defensive + clean/sweet contact: high boundary chance
+        // This rewards players who time well and pick the right shot
+        if (shot.id !== 'defensive' && 
+            (contact.type === CONTACT_TYPES.SWEET || contact.type === CONTACT_TYPES.CLEAN) &&
+            (matchupScore || 1.0) >= 0.90) {
+            // Scale boundary chance by timing quality
+            const timingScale = {
+                perfect: 1.0,   // handled above, but just in case
+                good: 1.0,
+                early: 0.55,
+                late: 0.50,
+                very_early: 0.15,
+                very_late: 0.12
+            }[timing.grade] || 0.3;
+            const goodBoundaryChance = (shot.category === 'power' || shot.category === 'innovative')
+                ? this.clamp(0.55 * timingScale * (conversion.orthodoxBoundaryBias || 1.0) * (matchupScore || 1.0), 0.05, 0.72)
+                : this.clamp(0.40 * timingScale * (conversion.orthodoxBoundaryBias || 1.0) * (matchupScore || 1.0), 0.04, 0.60);
+            if (Math.random() < goodBoundaryChance) {
+                const sixBias = (shot.category === 'power' || shot.category === 'innovative')
+                    ? this.clamp(0.20 * timingScale * (conversion.loftedSixBias || 1.0), 0.02, 0.35)
+                    : this.clamp(0.06 * timingScale, 0.01, 0.12);
+                const runs = Math.random() < sixBias ? 6 : 4;
+                return {
+                    runs,
+                    wicket: false,
+                    edge: false,
+                    dismissal: null,
+                    description: runs === 6 ? 'Well-timed power, clears the rope for six.' : 'Good shot selection finds the gap, boundary.'
+                };
+            }
+        }
+
         const boundaryLine = this.getBoundaryDistance(pitchMods, zone);
         const isAerial = trajectory.elevation >= 22;
 
@@ -1270,6 +1304,23 @@ class BattingSystem {
             contact.controlFactor * 0.28 -
             (infield ? 0.55 : 0.0) +
             timingRunFactor;
+
+        // Shot selection quality boost: when matchup is favorable, reward across ALL timings
+        // Better timing gets a larger bonus, but even mistimed shots benefit from correct shot selection
+        const qualityMatchup = matchupScore || 1.0;
+        if (qualityMatchup >= 0.85) {
+            const timingMult = {
+                perfect: 1.0,
+                good: 0.85,
+                early: 0.45,
+                late: 0.40,
+                very_early: 0.15,
+                very_late: 0.12
+            }[timing.grade] || 0.25;
+            const matchupBonus = (qualityMatchup - 0.85) * 2.0 * timingMult;
+            const timingBonus = timing.grade === 'perfect' ? 0.35 : (timing.grade === 'good' ? 0.18 : 0.0);
+            runPotential += matchupBonus + timingBonus;
+        }
 
         runPotential += (((identity.strikeRotation ?? 50) - 50) / 50) * 0.18;
         runPotential += (((identity.gapManipulation ?? 50) - 50) / 50) * 0.18;
@@ -1325,7 +1376,7 @@ class BattingSystem {
         };
     }
 
-    resolveDismissal({ contact, trajectory, shot, timing, delivery, fieldDensity, zone, context, batter }) {
+    resolveDismissal({ contact, trajectory, shot, timing, delivery, fieldDensity, zone, context, batter, matchupScore }) {
         const conversion = this.getConversionProfile(batter);
         // Perfect timing should be almost never out.
         if (timing.grade === 'perfect') {
@@ -1334,7 +1385,14 @@ class BattingSystem {
 
         // Good timing should have very low wicket probability.
         if (timing.grade === 'good') {
-            if (Math.random() < 0.96) return { isWicket: false };
+            // Even safer when shot selection suits the delivery
+            const safetyThreshold = (matchupScore || 1.0) >= 0.90 ? 0.985 : 0.96;
+            if (Math.random() < safetyThreshold) return { isWicket: false };
+        }
+
+        // Even early/late timing gets some protection from good shot selection
+        if ((timing.grade === 'early' || timing.grade === 'late') && (matchupScore || 1.0) >= 1.0) {
+            if (Math.random() < 0.88) return { isWicket: false };
         }
 
         const deliveryId = this.getDeliveryId(delivery);

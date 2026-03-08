@@ -1,196 +1,203 @@
 // ============================================================
-// CRICKET LEGENDS — Dynamic Commentary System
-// Backward-compatible rewrite
+// CRICKET LEGENDS — Dynamic Commentary System v3.3
+// Scored selection, detail-priority, bowler archetypes.
 // ============================================================
 
 class CommentarySystem {
     constructor() {
         this.history = [];
         this.milestones = new Set();
-        this.recentLineMemory = [];
-        this.maxRecentMemory = 30;
+        this.recentExactTexts = [];
+        this.recentSemanticSigs = [];
+        this.maxRecentMemory = 120;
+        this.recentOpenings = [];
+        this.maxRecentOpenings = 12;
+        this.recentStructures = { main: [], analyst: [] };
+        this.maxRecentStructures = 6;
+
+        this.duelState = {
+            lastBall: null,
+            consecutiveDots: 0,
+            consecutiveBoundaries: 0,
+            falseShotsSinceBoundary: 0,
+            bowlerOnTopScore: 0
+        };
+
+        // ── PHRASE BANKS ───────────────────────────────────
+        this.PB = {
+            deliveryVerbs: {
+                yorker:      (bo) => [`${bo} nails the yorker`, `${bo} spears in the yorker`, `Full and fast from ${bo}`, `Right in the blockhole from ${bo}`, `${bo} targets the base of the stumps`, `A sharp yorker from ${bo}`, `${bo} fires it in at the toes`, `${bo} goes full and straight`],
+                bouncer:     (bo) => [`${bo} bangs it in short`, `${bo} tests with the bouncer`, `Short and sharp from ${bo}`, `${bo} digs it in`, `Dragged shorter this time by ${bo}`, `${bo} peppers the ribs`, `${bo} fires in the bumper`, `A hostile short ball from ${bo}`],
+                full_length: (bo) => [`${bo} pitches it right up`, `${bo} invites the drive`, `Full from ${bo}`, `${bo} goes full and wide`, `Pitched up by ${bo}`, `${bo} dangles it on a length`, `A full delivery from ${bo}`, `${bo} tempts with the full ball`],
+                slower_ball: (bo) => [`${bo} takes the pace off`, `A well-disguised slower ball from ${bo}`, `${bo} rolls the fingers over it`, `Change of pace from ${bo}`, `The slower ball from ${bo}`, `${bo} takes something off it`, `Cleverly dipped in pace by ${bo}`, `${bo} holds back the pace`],
+                flighted:    (bo) => [`${bo} tosses it up`, `${bo} gives it air`, `Flighted delivery from ${bo}`, `${bo} floats one up invitingly`, `${bo} loops it up`, `A tempting flight from ${bo}`, `${bo} drifts one in with flight`, `Tossed up nicely by ${bo}`],
+                googly:      (bo) => [`${bo} slips in the googly`, `The wrong'un from ${bo}`, `${bo} fires in the variation`, `A well-disguised googly from ${bo}`, `${bo} rolls out the wrong'un`, `${bo} spins it the other way`, `The googly from ${bo}`, `${bo} deceives with the googly`],
+                generic:     (bo) => [`${bo} comes in and bowls`, `${bo} runs in`, `Into the delivery stride for ${bo}`, `${bo} delivers`]
+            },
+            timingClauses: {
+                perfect:    (ba) => [`${ba} meets it in the perfect window`, `${ba} times it to absolute perfection`, `Perfect timing from ${ba}`, `${ba} picks the length early and nails the timing`, `Right out of the textbook from ${ba}`, `${ba} is right on it`, `${ba} gets into position early and connects perfectly`, `Timed superbly by ${ba}`],
+                good:       (ba) => [`${ba} times it solidly`, `A well-timed stroke from ${ba}`, `${ba} reads the length and connects well`, `Solid timing from ${ba}`, `${ba} gets a good read on it`, `${ba} meets it cleanly enough`],
+                early:      (ba) => [`${ba} is slightly early into the shot`, `${ba} commits a fraction too soon`, `Just a touch early from ${ba}`, `${ba} is fractionally ahead of the ball`, `${ba} pushes at it a shade early`, `${ba} doesn't quite wait for it`],
+                very_early: (ba) => [`${ba} premeditates and swings far too early`, `${ba} commits early and the shot never looks right`, `Way too early from ${ba}`, `${ba} is through the stroke before the ball arrives`, `${ba} lunges forward too soon`, `${ba} charges and swings well ahead of the delivery`, `${ba} goes hard but way too early`, `${ba} throws the bat far too early`],
+                late:       (ba) => [`${ba} is hurried and gets the bat down late`, `${ba} is cramped for room and late on the stroke`, `Late on the connection from ${ba}`, `${ba} is rushed by the pace`, `${ba} can't quite get into position in time`, `${ba} plays it a touch late`],
+                very_late:  (ba) => [`${ba} is completely rushed for pace`, `${ba} barely gets the bat down in time`, `Very late from ${ba}`, `${ba} is beaten for pace and only just makes contact`, `${ba} is nowhere near the timing on that`, `${ba} is undone by the pace`],
+                generic:    (ba) => [`${ba} reacts to the ball`, `${ba} plays at it`, `${ba} goes for the shot`]
+            },
+            contactClauses: {
+                sweet: [`right out of the middle`, `sweet contact`, `middled it beautifully`, `pure connection off the bat face`, `flushed it`, `hit out of the screws`, `nailed it cleanly`, `got hold of it perfectly`],
+                clean: [`convincing contact`, `solid connection`, `cleanly struck`, `decent contact off the face`, `met it firmly`, `connected well enough`, `good bat on ball`],
+                weak:  [`slices it awkwardly`, `the miscue comes off the toe-end`, `off the splice`, `only a weak connection`, `never gets hold of it`, `checked the shot and it comes off the bat awkwardly`, `off the bottom half of the bat`, `dragged across it`, `a thin connection at best`, `skews it off the face`],
+                edge:  [`takes a thick outside edge`, `a faint nick`, `the inside edge intervenes`, `it squirts off the edge`, `nicks it`, `feathers it`, `gets a thick edge`, `deflects off the outside half`, `the ball flies off the splice`],
+                miss:  [`misses completely`, `swings over the top of it`, `nowhere near it`, `fails to connect`, `beaten all ends up`, `the bat passes the ball`, `pure air`, `deceived entirely`, `not even close`]
+            },
+            outcomeClauses: {
+                six:    [`and it sails away for a massive six`, `that disappears into the crowd for six`, `maximum! Over the ropes`, `six runs, all the way`, `into the stands for six`, `cleared comfortably for a maximum`],
+                four:   [`and it races to the boundary for four`, `that beats the field for four`, `four runs, no need to run`, `to the fence for four`, `boundary! It splits the gap`, `whistles away to the rope for four`],
+                wicket: [`and that is the end of the innings for the batter`, `wicket! The bowling side strikes`, `gone! The batter has to walk`, `and that brings a crucial wicket`],
+                dot:    [`and no run comes from it`, `dot ball`, `can't get it away`, `no run in the end`, `beaten, no run`, `and the fielder cuts it off, no run`],
+                one:    [`and they squeeze out a single`, `nudges one into the gap`, `rotates the strike with a quick single`, `one run, and the strike changes`, `steals a single`, `pushes it away for one`],
+                two:    [`and they come back for two`, `hustles through for a couple`, `good running gets them two`, `two runs with sharp calling`, `scampers back for the second`, `they push hard and complete two`],
+                three:  [`and they race through for three`, `three runs with excellent running`, `picks up three`],
+                runs:   (r) => [`they scramble through for ${r}`, `${r} runs added`, `and they complete ${r} runs`]
+            },
+            ballPath: {
+                boundary: [`it races through the covers`, `splits the gap in the offside`, `threads past the diving fielder`, `pierces the ring field`, `beats the man at the fence`, `screams past the fielder`],
+                aerial:   [`it loops into the deep`, `in the air and clears the field`, `high into the sky`, `sails over the infield`, `launches it skyward`],
+                ground:   [`it squirts away behind point`, `rolls into the gap`, `drops short of the fielder`, `trickles past the ring`, `dribbles into the offside`],
+                dead:     [`goes straight to the fielder`, `finds the man precisely`, `picks out the fielder`, `straight into safe hands`]
+            }
+        };
     }
 
     // =========================================================
-    // Public API
+    // Public API Methods
     // =========================================================
 
-    generate(ballResult, matchContext, batter, bowler) {
-        const lines = [];
+    // Returns an Object: { type: 'ball', lines: [ { speaker, energy, text } ], ball, over, ... }
+    generate(ballResult, matchContext, rawBatter, rawBowler) {
+        // Safe object destructuring and fallbacks
+        const batter = rawBatter || {};
+        const bowler = rawBowler || {};
+        const context = matchContext || {};
+        const result = ballResult || {};
+        
+        const batterName = batter.name || 'the batter';
+        const bowlerName = bowler.name || 'the bowler';
 
-        const intro = this.shouldUseDeliveryIntro(ballResult, matchContext)
-            ? this.deliveryLine(ballResult, bowler, batter, matchContext)
-            : null;
+        const event = this.buildEventModel(result, context, batter, bowler, batterName, bowlerName);
+        const intent = this.selectIntent(event);
 
-        if (intro) lines.push(intro);
+        // Generate lines as objects
+        const primary = this.generatePrimaryCall(event, intent);
+        const secondary = this.generateSecondaryCall(event, intent);
+        const tertiary = this.generateTertiaryCall(event, intent);
 
-        if (ballResult.wicket) {
-            lines.push(this.wicketLine(ballResult, batter, bowler, matchContext));
-        } else if (ballResult.six) {
-            lines.push(this.sixLine(ballResult, batter, bowler, matchContext));
-        } else if (ballResult.boundary) {
-            lines.push(this.fourLine(ballResult, batter, bowler, matchContext));
-        } else if ((ballResult.runs || 0) === 0) {
-            lines.push(this.dotLine(ballResult, batter, bowler, matchContext));
-        } else {
-            lines.push(this.runLine(ballResult, batter, bowler, matchContext));
-        }
+        const lines = [primary, secondary, tertiary].filter(Boolean);
+        const finalLines = this.dedupeAndFreshenObjects(lines).slice(0, this.maxLinesFromImportance(event.importance));
 
-        const timingLabel = this.timingQualityLine(ballResult);
-        if (timingLabel) lines.push(timingLabel);
-
-        const milestoneLine = this.checkMilestones(matchContext, batter);
-        if (milestoneLine) lines.push(milestoneLine);
-
-        const pressureLine = this.pressureLine(matchContext, batter, bowler, ballResult);
-        if (pressureLine) lines.push(pressureLine);
-
-        const momentumLine = this.momentumLine(matchContext, batter, bowler, ballResult);
-        if (momentumLine) lines.push(momentumLine);
-
-        const phaseLine = this.phaseLine(matchContext, ballResult, batter, bowler);
-        if (phaseLine) lines.push(phaseLine);
-
-        const maxLines = this.getMaxLinesForBall(ballResult, matchContext);
-        const finalLines = this.dedupeAndFreshen(lines).slice(0, maxLines);
+        this.updateDuelState(event);
 
         const entry = {
             type: 'ball',
-            lines: finalLines,
-            ball: matchContext.ballInOver,
-            over: matchContext.currentOver
+            lines: finalLines, // Array of structured objects
+            ball: context.ballInOver || 0,
+            over: context.currentOver || 0,
+            intent,
+            importance: event.importance,
+            tags: event.tags
         };
 
         this.history.unshift(entry);
-        if (this.history.length > 40) this.history.pop();
+        if (this.history.length > 50) this.history.pop();
 
         return entry;
     }
 
-    endOfOverLine(context, bowler) {
-        const overNumber = context.currentOver;
+    endOfOverLine(context, rawBowler) {
+        const bowler = rawBowler || {};
+        const bowlerName = bowler.name || 'the bowler';
+        const overNumber = context.currentOver || 0;
         const score = context.score ?? context.totalRuns ?? context.runs ?? 0;
         const wickets = context.wicketsLost ?? context.wickets ?? 0;
         const overRuns = context.runsThisOver;
-        const narrative = this.inferMatchNarrative(context);
-
-        let lines = [
-            `📋 End of over ${overNumber}. Score ${score}/${wickets}.`,
-            `📋 Over ${overNumber} complete. The batting side moves to ${score}/${wickets}.`,
-            `📋 ${overNumber} overs gone now, and it is ${score}/${wickets}.`,
-            `📋 That is the end of over ${overNumber}. ${score}/${wickets} on the board.`,
-            `📋 Over ${overNumber} done. The score reads ${score}/${wickets}.`,
-            `📋 End of the over. ${score}/${wickets} after ${overNumber}.`
+        
+        let pool = [
+            `End of the over. Score moves to ${score}/${wickets}.`,
+            `The umpire calls over. ${score} for ${wickets}.`,
+            `Over number ${overNumber} concludes. ${score}/${wickets} on the board.`
         ];
 
         if (typeof overRuns === 'number') {
-            lines = lines.concat([
-                `📋 End of over ${overNumber}. ${overRuns} from it. Score ${score}/${wickets}.`,
-                `📋 Over ${overNumber} complete, ${overRuns} coming from that over. ${score}/${wickets}.`,
-                `📋 ${overRuns} off the over. The score advances to ${score}/${wickets}.`,
-                `📋 That over costs ${overRuns}. The batting side is now ${score}/${wickets}.`
-            ]);
-        }
-
-        if (narrative === 'onslaught') {
-            lines = lines.concat([
-                `📋 A punishing over for ${bowler.name}. Momentum is firmly with the batting side.`,
-                `📋 That over belonged entirely to the batters. ${bowler.name} was under pressure throughout.`,
-                `📋 The batting side has taken a clear step forward there.`
-            ]);
-        }
-
-        if (narrative === 'squeeze') {
-            lines = lines.concat([
-                `📋 A disciplined over, and the fielding side will be pleased with that control.`,
-                `📋 The pressure continues to build. That was a tight over from ${bowler.name}.`,
-                `📋 Not much breathing room in that over. Smart defensive cricket.`
-            ]);
+            if (overRuns === 0) pool.push(`A maiden over! Extraordinary control displayed by ${bowlerName}. ${score}/${wickets}.`);
+            else if (overRuns <= 3) pool.push(`Just ${overRuns} off the over. The pressure is mounting out there. ${score}/${wickets}.`);
+            else if (overRuns >= 12) pool.push(`An expensive over, leaking ${overRuns} runs. Momentum firmly shifts. ${score}/${wickets}.`);
+            else pool.push(`${overRuns} runs taken from the over. ${score}/${wickets}.`);
         }
 
         return {
             type: 'over_break',
-            lines: [this.ensureFreshLine(this.pick(lines))],
+            lines: [ { speaker: 'main', energy: 'low', text: this.sanitize(`📋 ${this.pick(pool)}`) } ],
             ball: 6,
             over: overNumber
         };
     }
 
     abilityTriggered(player, abilityName) {
-        const lines = [
-            `⚡ ${player.name}'s "${abilityName}" ability is now active!`,
-            `⚡ ${player.name} activates "${abilityName}" and the intensity rises immediately!`,
-            `⚡ Special ability triggered: ${player.name} unlocks "${abilityName}"!`,
-            `⚡ ${player.name} taps into "${abilityName}" right on cue!`,
-            `⚡ A surge from ${player.name}. "${abilityName}" is live now!`,
-            `⚡ ${player.name} has entered a different mode. "${abilityName}" is active!`,
-            `⚡ Momentum spike. ${player.name}'s "${abilityName}" has kicked in!`,
-            `⚡ Big moment here, ${player.name} switches on "${abilityName}"!`
+        const name = player?.name || 'Player';
+        const pool = [
+            `The complexion alters! ${name} fires up "${abilityName}"!`,
+            `${name} unlocks "${abilityName}", you can feel the intensity rise!`,
+            `Special ability triggered: ${name} taps into "${abilityName}" at a crucial moment!`
         ];
-        return this.ensureFreshLine(this.pick(lines));
+        return { speaker: 'main', energy: 'high', text: this.sanitize(`⚡ ${this.pick(pool)}`) };
     }
 
     // =========================================================
-    // Core Helpers
+    // V2.1 Event Model & Narrative Setup
     // =========================================================
 
-    pick(arr) {
-        return arr[Math.floor(Math.random() * arr.length)];
+    normalizeEnum(value, fallback = 'generic') {
+        return String(value || fallback).replace(/[\s-]+/g, '_').trim().toLowerCase();
     }
 
-    maybe(chance = 0.5) {
-        return Math.random() < chance;
-    }
+    buildEventModel(result, context, batter, bowler, bName, boName) {
+        const phase = this.getPhase(context);
+        const pressure = this.getPressureLevel(context);
+        const dismissalType = this.getDismissalType(result);
+        const outcomeType = this.getOutcomeType(result);
+        const shotType = this.normalizeEnum(result.shotType, 'shot');
+        const deliveryType = this.normalizeEnum(result.deliveryType, 'delivery');
+        const contactType = this.normalizeEnum(result.contactType, 'clean');
+        const timingDetail = this.normalizeEnum(result.timingDetail, 'good');
 
-    formatRuns(runs) {
-        return `${runs} run${runs === 1 ? '' : 's'}`;
-    }
+        const importance = this.scoreImportance(result, context);
+        const tags = [];
 
-    rememberLine(line) {
-        if (!line) return;
-        this.recentLineMemory.unshift(line);
-        if (this.recentLineMemory.length > this.maxRecentMemory) {
-            this.recentLineMemory.pop();
-        }
-    }
+        if (result.wicket) tags.push('wicket');
+        if (result.six) tags.push('six');
+        if (result.boundary) tags.push('boundary');
+        if ((result.runs || 0) === 0 && !result.wicket) tags.push('dot');
+        if (pressure === 'extreme') tags.push('high_pressure');
+        if (phase === 'death') tags.push('death_overs');
 
-    ensureFreshLine(line) {
-        if (!line) return null;
+        const geography = this.inferShotGeography(shotType);
+        const consequence = this.inferConsequence(result, context);
+        const styleTags = this.getPlayerStyleTags(batter, bowler);
+        const energy = this.getCommentaryEnergy(outcomeType, pressure, result.runs);
 
-        if (!this.recentLineMemory.includes(line)) {
-            this.rememberLine(line);
-            return line;
-        }
+        const event = {
+            result, context, batter, bowler, 
+            batterName: bName, bowlerName: boName,
+            phase, pressure, dismissalType, outcomeType,
+            shotType, deliveryType, contactType, timingDetail,
+            importance, tags, geography, consequence, 
+            styleTags, energy
+        };
 
-        const suffixes = [
-            ` The crowd reacts immediately.`,
-            ` That shifts the mood out there.`,
-            ` You can sense the tension changing.`,
-            ` The fielding side feels that one.`,
-            ` That lands heavily in this contest.`,
-            ` A telling moment in the game.`,
-            ` The noise around the ground rises.`,
-            ` That changes the emotional temperature of the match.`
-        ];
+        // Attach setupPayoff after event is built so it can access event properties
+        event.setupPayoff = this.inferSetupPayoff(event);
 
-        const fresh = line + this.pick(suffixes);
-        this.rememberLine(fresh);
-        return fresh;
-    }
-
-    dedupeAndFreshen(lines) {
-        const seen = new Set();
-        const out = [];
-
-        for (const line of lines) {
-            if (!line) continue;
-            const normalized = line.trim().toLowerCase();
-            if (seen.has(normalized)) continue;
-            seen.add(normalized);
-            out.push(this.ensureFreshLine(line));
-        }
-
-        return out;
+        return event;
     }
 
     getPhase(context) {
@@ -202,16 +209,15 @@ class CommentarySystem {
 
     getPressureLevel(context) {
         let pressure = 0;
-
-        if (context.innings === 2 && context.requiredRunRate) {
+        if (context.innings === 2 && context.requiredRunRate != null) {
             if (context.requiredRunRate >= 14) pressure += 3;
             else if (context.requiredRunRate >= 10) pressure += 2;
             else if (context.requiredRunRate >= 8) pressure += 1;
         }
-
         if ((context.consecutiveDots || 0) >= 3) pressure += 2;
         if ((context.wicketsLost || 0) >= 4) pressure += 1;
-        if (context.runsNeeded !== null && context.runsNeeded !== undefined && context.runsNeeded <= 20) pressure += 2;
+        const req = context.runsNeeded ?? 999;
+        if (context.innings === 2 && req > 0 && req <= 20) pressure += 2;
 
         if (pressure >= 5) return 'extreme';
         if (pressure >= 3) return 'high';
@@ -219,892 +225,704 @@ class CommentarySystem {
         return 'low';
     }
 
-    inferBatterState(context) {
-        const runs = context.currentBatterRuns || 0;
-        const balls = context.currentBatterBalls || 0;
-        const sr = balls > 0 ? runs / balls : 0;
-
-        if (runs >= 70) return 'dominant';
-        if (sr >= 1.7) return 'explosive';
-        if (balls >= 12 && sr < 0.8) return 'restless';
-        if (balls <= 5) return 'settling';
-        return 'composed';
+    getCommentaryEnergy(outcomeType, pressure, runs) {
+        if (outcomeType === 'wicket' || outcomeType === 'six') return 'high';
+        if (pressure === 'extreme' && (outcomeType === 'four' || outcomeType === 'six' || outcomeType === 'wicket')) return 'high';
+        if (outcomeType === 'dot' && pressure !== 'extreme') return 'low';
+        if ((runs || 0) <= 2) return 'low';
+        return 'medium';
     }
 
-    inferMatchNarrative(context) {
-        if (context.innings === 2 && context.runsNeeded !== null && context.runsNeeded !== undefined) {
-            if (context.runsNeeded <= 10) return 'finish_line';
-            if ((context.requiredRunRate || 0) >= 12) return 'climb';
-            if ((context.requiredRunRate || 99) <= 7) return 'under_control';
+    // Fisher-Yates shuffle for robust randomization
+    shuffle(arr) {
+        const a = [...arr];
+        for (let i = a.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [a[i], a[j]] = [a[j], a[i]];
         }
-
-        if ((context.consecutiveBoundaries || 0) >= 3) return 'onslaught';
-        if ((context.consecutiveDots || 0) >= 4) return 'squeeze';
-        if ((context.wicketsLost || 0) >= 5) return 'collapse_threat';
-
-        return 'neutral';
-    }
-
-    getMaxLinesForBall(result, context) {
-        if (result.wicket) return 3;
-        if (result.six) return 3;
-        if (result.boundary) return 2;
-        if ((context.runsNeeded || 999) <= 10) return 3;
-        return 2;
-    }
-
-    shouldUseDeliveryIntro(result, context) {
-        const specialBalls = new Set([
-            'yorker',
-            'bouncer',
-            'slower_ball',
-            'inswing',
-            'outswing',
-            'doosra',
-            'googly',
-            'flighted',
-            'arm_ball',
-            'top_spinner'
-        ]);
-
-        if (result.wicket) return true;
-        if (result.six || result.boundary) return true;
-        if (specialBalls.has(result.deliveryType)) return true;
-        if (this.getPressureLevel(context) === 'extreme') return true;
-
-        return this.maybe(0.18);
+        return a;
     }
 
     getDismissalType(result) {
-        const raw = (result.dismissal || '').toLowerCase().trim();
-
+        const raw = String(result.dismissal || '').toLowerCase().trim();
         if (raw.includes('bowled')) return 'bowled';
         if (raw.includes('caught')) return 'caught';
         if (raw.includes('lbw')) return 'lbw';
         if (raw.includes('run')) return 'run_out';
         if (raw.includes('stump')) return 'stumped';
         if (raw.includes('hit wicket')) return 'hit_wicket';
-
         return raw || 'generic';
     }
 
-    timingQualityLine(result) {
-        const grade = (result.timingDetail || result.timing || '').toLowerCase();
-        if (!grade) return null;
+    getOutcomeType(result) {
+        if (result.wicket) return 'wicket';
+        if (result.six) return 'six';
+        if (result.boundary) return 'four';
+        if ((result.runs || 0) === 0) return 'dot';
+        return 'runs';
+    }
 
-        if (grade === 'perfect' && !this.maybe(0.35)) return null;
-        if (grade === 'good' && !this.maybe(0.22)) return null;
-        if ((grade === 'early' || grade === 'late') && !this.maybe(0.20)) return null;
-        if ((grade === 'very_early' || grade === 'very_late') && !this.maybe(0.45)) return null;
+    scoreImportance(result, context) {
+        let score = 0;
+        if (result.wicket) score += 6;
+        else if (result.six) score += 5;
+        else if (result.boundary) score += 4;
+        else if ((result.runs || 0) >= 2) score += 2;
 
-        const table = {
-            perfect: [
-                `Timing grade: PERFECT. That was elite contact timing.`,
-                `PERFECT timing there, almost no margin for error.`,
-                `That lands in the PERFECT window, top-level execution.`
-            ],
-            good: [
-                `Timing grade: GOOD. Solid bat-to-ball connection.`,
-                `GOOD timing from the batter, controlled execution.`,
-                `That is in the GOOD band, reliable contact.`
-            ],
-            early: [
-                `Timing grade: EARLY. Contact was slightly in front of ideal.`,
-                `A touch EARLY on that stroke, control drops off.`,
-                `EARLY timing there, so the shot loses precision.`
-            ],
-            late: [
-                `Timing grade: LATE. The batter met it behind ideal.`,
-                `A fraction LATE on contact, making control harder.`,
-                `LATE timing there, and that changes the outcome profile.`
-            ],
-            very_early: [
-                `Timing grade: VERY EARLY. High-risk mis-hit territory.`,
-                `Very early contact, and that is where wickets can appear.`,
-                `VERY EARLY timing, difficult to control that shot.`
-            ],
-            very_late: [
-                `Timing grade: VERY LATE. Serious mistime risk.`,
-                `Very late contact, a dangerous outcome band.`,
-                `VERY LATE timing there, and the control is compromised.`
-            ]
+        if (context.innings === 2 && (context.runsNeeded ?? 999) <= 12) score += 3;
+        if ((context.requiredRunRate ?? 0) >= 12) score += 2;
+        if ((context.consecutiveDots ?? 0) >= 3) score += 2;
+        if ((context.consecutiveBoundaries ?? 0) >= 2) score += 2;
+
+        return score;
+    }
+
+    getPlayerStyleTags(batter, bowler) {
+        let bStyle = [];
+        let boStyle = [];
+        
+        const bType = String(batter?.battingStyle || '').toLowerCase();
+        if (bType.includes('power') || bType.includes('aggress')) bStyle.push('power_hitter');
+        else if (bType.includes('anchor') || bType.includes('defensive')) bStyle.push('anchor');
+        else if (bType.includes('timer') || bType.includes('classical')) bStyle.push('timer');
+        else if (bType.includes('improv')) bStyle.push('improviser');
+        else if (bType.includes('finish')) bStyle.push('finisher');
+        else if (bType) bStyle.push(bType);
+        
+        const boType = String(bowler?.bowlingStyle || '').toLowerCase();
+        if (boType.includes('fast') || boType.includes('pace')) {
+            boStyle.push('pace');
+            if (boType.includes('swing')) boStyle.push('swing_bowler');
+            else if (boType.includes('death')) boStyle.push('death_specialist');
+        }
+        if (boType.includes('spin')) {
+            boStyle.push('spin');
+            if (boType.includes('wrist') || boType.includes('leg')) boStyle.push('wrist_spinner');
+            else if (boType.includes('finger') || boType.includes('off')) boStyle.push('finger_spinner');
+        }
+        
+        return { batter: bStyle, bowler: boStyle };
+    }
+
+    selectIntent(event) {
+        if (event.outcomeType === 'wicket') return 'dismissal_drama';
+        if (event.outcomeType === 'six') return 'impact_hit';
+        if (event.setupPayoff) return 'setup_payoff';
+        if (event.consequence === 'equation_shift') return 'match_consequence';
+        if (event.pressure === 'extreme') return 'pressure_moment';
+        return 'standard_call';
+    }
+
+    inferShotGeography(shot) {
+        const map = {
+            'drive': ['through extra cover', 'past mid off', 'straight down the ground', 'through the covers', 'past the diving mid on', 'punching it wide of cover', 'driving smoothly down town'],
+            'cut': ['behind point', 'through backward point', 'square on the off side', 'past the gully', 'slashing it past backward point', 'chopping it fine'],
+            'pull': ['behind square leg', 'toward deep backward square', 'into the midwicket pocket', 'splitting the deep square fielders', 'muscled away behind square', 'swiped to the deep midwicket fence'],
+            'flick': ['through midwicket', 'wide of mid on', 'behind square on the leg side', 'working away fine', 'tucked off the hip'],
+            'lofted': ['over long on', 'over extra cover', 'straight back over the bowler', 'into the stands at deep midwicket', 'clearing the long off boundary', 'sending it high into the V', 'launching it dead straight'],
+            'hook': ['fine of deep square', 'over fine leg', 'into the top tier behind square leg', 'helped on its way over the keeper'],
+            'slog': ['into the cow corner stands', 'hoicked over midwicket', 'dumped brutally over the leg side', 'heaved across the line'],
+            'sweep': ['behind square leg', 'swept fine', 'squaring up the man at deep backward square', 'rolling the wrists past fine leg'],
+            'reverse_sweep': ['over short third man', 'past backward point', 'clearing the infield on the off side', 'audaciously flipped past point'],
+            'dig_out': ['squirts it into the off side', 'jams it away square', 'digs it out toward point']
         };
 
-        const pool = table[grade];
-        if (!pool || pool.length === 0) return null;
-        return this.pick(pool);
+        const pool = map[shot];
+        return pool ? this.pick(pool) : 'into the gap';
+    }
+
+    inferConsequence(result, context) {
+        if (context.innings === 2) {
+            if (result.boundary || result.six || result.wicket) return 'equation_shift';
+            if ((context.runsNeeded ?? 999) <= 12) return 'equation_shift';
+            if ((context.requiredRunRate ?? 0) >= 12) return 'escalating_rate';
+        }
+        if ((context.consecutiveDots ?? 0) >= 3) return 'pressure_build';
+        return 'neutral';
+    }
+
+    // ── Clause Retrieval Helpers ─────────────────────────────
+    getDeliveryClause(deliveryType, bowlerName) {
+        const fn = this.PB.deliveryVerbs[deliveryType] || this.PB.deliveryVerbs.generic;
+        return this.pick(fn(bowlerName));
+    }
+    getTimingClause(timingDetail, batterName) {
+        const fn = this.PB.timingClauses[timingDetail] || this.PB.timingClauses.generic;
+        return this.pick(fn(batterName));
+    }
+    getContactClause(contactType) {
+        return this.pick(this.PB.contactClauses[contactType] || this.PB.contactClauses.clean);
+    }
+    getOutcomeClause(outcomeType, runs) {
+        if (outcomeType === 'runs' || outcomeType === 'dot' || outcomeType === 'four' || outcomeType === 'six' || outcomeType === 'wicket') {
+            let key = outcomeType;
+            if (key === 'runs') { if (runs === 1) key = 'one'; else if (runs === 2) key = 'two'; else if (runs === 3) key = 'three'; }
+            const pool = this.PB.outcomeClauses[key];
+            if (typeof pool === 'function') return this.pick(pool(runs));
+            return this.pick(pool);
+        }
+        return `${runs} runs from that`;
+    }
+    getBallPath(outcomeType, contactType) {
+        if (outcomeType === 'six') return this.pick(this.PB.ballPath.aerial);
+        if (outcomeType === 'four') return this.pick(this.PB.ballPath.boundary);
+        if (outcomeType === 'dot' && contactType === 'clean') return this.pick(this.PB.ballPath.dead);
+        return this.pick(this.PB.ballPath.ground);
+    }
+
+    // ── Wicket-Specific Templates ──────────────────────────
+    buildWicketLines(event) {
+        const { batterName, bowlerName, dismissalType, contactType, deliveryType, timingDetail, shotType } = event;
+        const deliv = this.getDeliveryClause(deliveryType, bowlerName);
+        const timing = this.getTimingClause(timingDetail, batterName);
+        const pool = [];
+
+        if (dismissalType === 'bowled') {
+            if (contactType === 'miss') {
+                pool.push(`${deliv}, ${batterName} ${this.pick(this.PB.contactClauses.miss)}, and the stumps are shattered!`);
+                pool.push(`Bowled him! ${bowlerName} cleans up ${batterName} with that ${deliveryType}. ${batterName} ${this.pick(this.PB.contactClauses.miss)}.`);
+                pool.push(`${timing}, ${this.pick(this.PB.contactClauses.miss)}, and the timber is disturbed. ${bowlerName} strikes!`);
+                pool.push(`Through the gate! ${deliv} and ${batterName} has no answer.`);
+            } else if (contactType === 'edge') {
+                pool.push(`Chopped on! ${deliv}, ${batterName} gets an inside edge onto the stumps.`);
+                pool.push(`Played on! ${timing} against the ${deliveryType}, the inside edge does the damage.`);
+                pool.push(`${deliv}, ${batterName} drags the inside edge back onto the woodwork. Gone!`);
+            } else {
+                pool.push(`OUT! ${deliv} and the stumps are rattled. A wonderful delivery.`);
+                pool.push(`${bowlerName} bowls ${batterName} with that ${deliveryType}. Couldn't keep it out.`);
+            }
+        } else if (dismissalType === 'caught') {
+            if (contactType === 'edge') {
+                pool.push(`${deliv}, ${timing}, ${this.pick(this.PB.contactClauses.edge)}, and it carries to the fielder. Caught!`);
+                pool.push(`Edged and taken! ${deliv}, ${batterName} ${this.pick(['feathers it', 'nicks it', 'gets a thick edge'])} and the catch is held.`);
+            } else if (contactType === 'weak' || contactType === 'miss') {
+                pool.push(`In the air! ${timing} into the ${shotType}, ${this.pick(this.PB.contactClauses.weak)}, and the fielder takes it safely.`);
+                pool.push(`${deliv}, ${batterName} miscues the ${shotType} high into the air, and the catch is taken.`);
+                pool.push(`Soft dismissal. ${timing}, never gets hold of the ${shotType}, and it lobs straight to the fielder.`);
+            } else {
+                pool.push(`Hit straight to the fielder! ${batterName} picks out the man with the ${shotType}.`);
+                pool.push(`${deliv}, ${batterName} connects but ${this.pick(this.PB.ballPath.dead)}. Caught!`);
+            }
+        } else if (dismissalType === 'lbw') {
+            pool.push(`${deliv}, ${timing}, ${this.pick(this.PB.contactClauses.miss)}, and trapped in front! LBW!`);
+            pool.push(`Huge appeal and given! ${batterName} ${this.pick(this.PB.contactClauses.miss)} against the ${deliveryType}. Dead plumb.`);
+            pool.push(`${bowlerName} pins ${batterName} with the ${deliveryType}. Late on the stroke and hit right in front.`);
+        } else if (dismissalType === 'stumped') {
+            pool.push(`${deliv}, ${batterName} is drawn forward, ${this.pick(this.PB.contactClauses.miss)}, and the keeper whips the bails off!`);
+            pool.push(`Beaten in the flight! ${batterName} goes for the ${shotType}, misses, and is stumped.`);
+        } else if (dismissalType === 'run_out') {
+            pool.push(`Disaster! A mix-up in the running and ${batterName} is run out.`);
+            pool.push(`Direct hit and ${batterName} is well short. Run out!`);
+        } else {
+            pool.push(`WICKET! ${bowlerName} claims ${batterName}. The ${deliveryType} does the trick.`);
+        }
+        return pool;
     }
 
     // =========================================================
-    // Delivery Commentary
+    // Core Line Generators
     // =========================================================
 
-    deliveryLine(result, bowler, batter, context) {
-        const type = result.deliveryType;
-        const phase = this.getPhase(context);
-        const pressure = this.getPressureLevel(context);
-
-        const templates = {
-            yorker: [
-                `${bowler.name} nails the yorker, right at the base of the stumps.`,
-                `${bowler.name} goes full and flat, aiming for the blockhole.`,
-                `A searing yorker from ${bowler.name}.`,
-                `${bowler.name} spears it in at yorker length.`,
-                `Deadly full from ${bowler.name}, almost unhittable if executed right.`,
-                `${bowler.name} attacks the toes with a sharp yorker.`,
-                `Full, fast, and right in the danger zone from ${bowler.name}.`,
-                `${bowler.name} commits to the yorker under pressure.`,
-                `A blockhole special from ${bowler.name}.`,
-                `${bowler.name} goes searching for the perfect yorker.`
-            ],
-            bouncer: [
-                `${bowler.name} bangs it in short and climbs into the batter.`,
-                `A sharp bouncer from ${bowler.name}, rising awkwardly.`,
-                `${bowler.name} goes hostile with the short ball.`,
-                `Short, steep, and aimed to unsettle from ${bowler.name}.`,
-                `${bowler.name} tests the batter's courage with a bouncer.`,
-                `That one climbs from a hard length, courtesy of ${bowler.name}.`,
-                `${bowler.name} digs it in and asks a serious question.`,
-                `A heavy short ball from ${bowler.name}.`,
-                `${bowler.name} goes upstairs with intent.`,
-                `The batter is forced onto the back foot by ${bowler.name}.`
-            ],
-            good_length: [
-                `${bowler.name} lands it on a nagging good length.`,
-                `That is the testing area from ${bowler.name}.`,
-                `${bowler.name} hits the seam-perfect channel.`,
-                `A disciplined good length delivery from ${bowler.name}.`,
-                `${bowler.name} keeps it right in the uncomfortable zone.`,
-                `Good length, good control, good pressure from ${bowler.name}.`,
-                `${bowler.name} finds that awkward length again.`,
-                `That is a thoughtful ball from ${bowler.name}.`,
-                `${bowler.name} keeps probing just outside certainty.`,
-                `A proper question asked by ${bowler.name}.`
-            ],
-            full_length: [
-                `${bowler.name} pitches it right up and invites the drive.`,
-                `Full from ${bowler.name}, daring the batter to commit.`,
-                `${bowler.name} goes searching for swing with a fuller ball.`,
-                `Pitched up by ${bowler.name}.`,
-                `${bowler.name} tempts the batter onto the front foot.`,
-                `That is invitingly full from ${bowler.name}.`,
-                `${bowler.name} pushes it up there in search of movement.`,
-                `A fuller length from ${bowler.name}, very hittable if overpitched.`,
-                `${bowler.name} attacks with the fuller option.`,
-                `Right up in the driving arc from ${bowler.name}.`
-            ],
-            slower_ball: [
-                `${bowler.name} takes the pace off cleverly.`,
-                `Change of pace from ${bowler.name}, disguised late.`,
-                `${bowler.name} rolls the fingers over it.`,
-                `That is the slower variation from ${bowler.name}.`,
-                `${bowler.name} smartly pulls the pace away from the batter.`,
-                `Off-cutter style variation from ${bowler.name}.`,
-                `${bowler.name} relies on deception here.`,
-                `A well-concealed slower ball from ${bowler.name}.`,
-                `${bowler.name} breaks the rhythm with reduced pace.`,
-                `The batter has to wait on that one from ${bowler.name}.`
-            ],
-            inswing: [
-                `${bowler.name} bends it back in late.`,
-                `A late in-swinger from ${bowler.name}.`,
-                `${bowler.name} brings it sharply into the pads.`,
-                `That tails in beautifully from ${bowler.name}.`,
-                `Lovely late inward movement from ${bowler.name}.`,
-                `${bowler.name} shapes it back toward the stumps.`,
-                `A dangerous in-swinger from ${bowler.name}.`,
-                `${bowler.name} attacks the inside edge with movement.`,
-                `That curves back from ${bowler.name}.`,
-                `${bowler.name} gets the ball talking inward.`
-            ],
-            outswing: [
-                `${bowler.name} shapes it away late from the batter.`,
-                `Lovely away movement from ${bowler.name}.`,
-                `${bowler.name} gets it to leave the batter.`,
-                `That angles across and keeps moving from ${bowler.name}.`,
-                `A classic outswinger from ${bowler.name}.`,
-                `${bowler.name} drags the batter wider with movement.`,
-                `That tempts and then escapes from ${bowler.name}.`,
-                `${bowler.name} finds late shape away from the bat.`,
-                `Beautiful seam and swing from ${bowler.name}.`,
-                `${bowler.name} makes the batter follow the ball outside off.`
-            ],
-            stock: [
-                `${bowler.name} goes back to the stock ball.`,
-                `Nothing fancy, just ${bowler.name} trusting the basics.`,
-                `${bowler.name} keeps it simple with the stock delivery.`,
-                `That is ${bowler.name}'s default option.`,
-                `${bowler.name} resets with the reliable ball.`,
-                `Back to the bread-and-butter delivery for ${bowler.name}.`,
-                `${bowler.name} trusts the standard line and length.`,
-                `The stock ball from ${bowler.name}, delivered with control.`,
-                `${bowler.name} returns to the fundamental option.`,
-                `A no-nonsense delivery from ${bowler.name}.`
-            ],
-            doosra: [
-                `${bowler.name} slips in the doosra.`,
-                `The doosra from ${bowler.name} turns the other way.`,
-                `${bowler.name} uses the variation to deceive the batter.`,
-                `That is the doosra, and the batter has to pick it early.`,
-                `${bowler.name} goes for the mystery option.`,
-                `A deceptive doosra from ${bowler.name}.`,
-                `${bowler.name} changes the direction of spin.`,
-                `That one behaves differently off the hand from ${bowler.name}.`,
-                `${bowler.name} goes for disguise and drift.`,
-                `The wrong-direction spinner from ${bowler.name}.`
-            ],
-            googly: [
-                `${bowler.name} fires in the googly.`,
-                `Wrong'un from ${bowler.name}.`,
-                `${bowler.name} disguises the googly nicely.`,
-                `The batter has to read that out of the hand, it is the googly from ${bowler.name}.`,
-                `${bowler.name} flips the script with the wrong'un.`,
-                `That turns the unexpected way from ${bowler.name}.`,
-                `${bowler.name} goes to the googly at an important moment.`,
-                `A teasing googly from ${bowler.name}.`,
-                `${bowler.name} changes the angle of the contest with the googly.`,
-                `The variation is out from ${bowler.name}.`
-            ],
-            flighted: [
-                `${bowler.name} tosses it up and invites risk.`,
-                `Plenty of air on that from ${bowler.name}.`,
-                `${bowler.name} gives it flight and temptation.`,
-                `Loop and drift from ${bowler.name}.`,
-                `${bowler.name} dares the batter to step out.`,
-                `That is wonderfully teased up by ${bowler.name}.`,
-                `${bowler.name} slows the moment down with flight.`,
-                `A hanging invitation from ${bowler.name}.`,
-                `${bowler.name} lets it float into the batter's decision.`,
-                `That is the artful, teasing version from ${bowler.name}.`
-            ],
-            arm_ball: [
-                `${bowler.name} skids the arm ball through.`,
-                `The arm ball from ${bowler.name} goes on with the angle.`,
-                `${bowler.name} hurries that one straight through.`,
-                `That is the quicker arm ball from ${bowler.name}.`,
-                `${bowler.name} removes spin and adds skid.`,
-                `A darting arm ball from ${bowler.name}.`,
-                `${bowler.name} slides it on without turn.`,
-                `That one stays true from ${bowler.name}.`,
-                `${bowler.name} surprises the batter with the straighter one.`,
-                `The arm ball zips through from ${bowler.name}.`
-            ],
-            top_spinner: [
-                `${bowler.name} rips in the top-spinner for extra bounce.`,
-                `Top-spinner from ${bowler.name}, and that one kicks.`,
-                `${bowler.name} gets overspin and lift.`,
-                `That climbs more than expected from ${bowler.name}.`,
-                `${bowler.name} forces bounce with the top-spinner.`,
-                `A jumping spinner from ${bowler.name}.`,
-                `${bowler.name} uses overspin to challenge the batter.`,
-                `That is the bouncing variation from ${bowler.name}.`,
-                `${bowler.name} extracts awkward lift there.`,
-                `The top-spinner from ${bowler.name} threatens off the surface.`
-            ]
-        };
-
-        let pool = templates[type] || [
-            `${bowler.name} begins the approach.`,
-            `${bowler.name} comes in for the next ball.`,
-            `Here is ${bowler.name} once more.`,
-            `${bowler.name} runs in again.`,
-            `${bowler.name} prepares for the next delivery.`,
-            `${bowler.name} starts the run-up.`,
-            `${bowler.name} is in again now.`,
-            `Back comes ${bowler.name}.`,
-            `${bowler.name} charges in.`,
-            `${bowler.name} sets off for the next ball.`
-        ];
-
-        if (phase === 'death' && this.maybe(0.35)) {
-            pool = pool.concat([
-                `${bowler.name} has almost no room for error in the death overs.`,
-                `This is a pressure delivery for ${bowler.name}.`,
-                `${bowler.name} knows one miss here can cost dearly.`,
-                `The field is back and the margin is tiny for ${bowler.name}.`,
-                `At this stage, execution is everything for ${bowler.name}.`
-            ]);
+    // Get archetype-driven verb for batter
+    getArchetypeVerb(styleTags, outcomeType) {
+        const style = styleTags?.batter?.[0] || '';
+        if (outcomeType === 'six' || outcomeType === 'four') {
+            if (style === 'power_hitter') return this.pick(['smashes', 'muscles', 'hammers', 'crunches', 'launches']);
+            if (style === 'timer') return this.pick(['caresses', 'threads', 'guides', 'eases', 'strokes']);
+            if (style === 'anchor') return this.pick(['works', 'pushes', 'nudges', 'places', 'steers']);
+            if (style === 'improviser') return this.pick(['manufactures', 'invents', 'improvises', 'flips', 'scoops']);
+            if (style === 'finisher') return this.pick(['dispatches', 'finds the gap with', 'picks', 'targets']);
         }
-
-        if (pressure === 'extreme' && this.maybe(0.3)) {
-            pool = pool.concat([
-                `The tension around this ball is unmistakable.`,
-                `One mistake here could swing the whole contest.`,
-                `This moment is heavier than an ordinary delivery.`,
-                `There is real nervous energy around the ground.`,
-                `Both players know the importance of this ball.`
-            ]);
-        }
-
-        return this.pick(pool);
+        return this.pick(['plays', 'hits', 'connects with', 'goes for']);
     }
 
-    // =========================================================
-    // Outcome Commentary
-    // =========================================================
-
-    wicketLine(result, batter, bowler, context) {
-        const dismissalType = this.getDismissalType(result);
-        const dismissalText = result.dismissal || 'is out';
-        const phase = this.getPhase(context);
-        const narrative = this.inferMatchNarrative(context);
-
-        let pool = [
-            `OUT! ${batter.name} ${dismissalText}! ${bowler.name} gets the breakthrough!`,
-            `WICKET! ${batter.name} is gone, and ${bowler.name} has delivered a massive blow!`,
-            `${bowler.name} strikes! ${batter.name} has to walk back!`,
-            `That is a huge moment in the match. ${batter.name} departs!`,
-            `Gone! ${bowler.name} wins the duel and the fielding side erupts!`,
-            `${batter.name} is out, and ${bowler.name} has changed the mood of the game!`,
-            `Breakthrough for ${bowler.name}! ${batter.name} cannot continue!`,
-            `The bowling side has what it wanted. ${batter.name} is dismissed!`,
-            `Big wicket! ${batter.name} falls at a critical time!`,
-            `${bowler.name} makes the breakthrough and the celebration says everything!`
-        ];
-
-        const byType = {
-            bowled: [
-                `Bowled him! ${batter.name} is beaten completely and the stumps are shattered!`,
-                `Cleaned up! ${batter.name} plays all around it!`,
-                `Through the gate! ${bowler.name} has ripped out the furniture!`,
-                `The castle has been breached. ${batter.name} is bowled!`,
-                `${batter.name} misses, and the stumps do not!`,
-                `What a ball. ${batter.name} is beaten and bowled!`,
-                `That sneaks through and demolishes the stumps!`,
-                `${bowler.name} goes straight through the defense!`,
-                `No answer from ${batter.name}. Bowled!`,
-                `The timber is disturbed, and ${batter.name} is gone!`
-            ],
-            caught: [
-                `Taken! ${batter.name} holes out and pays the price!`,
-                `In the air and safely held! ${batter.name} is gone!`,
-                `That hangs up long enough, and the fielder makes no mistake!`,
-                `Safe hands complete the chance, and ${batter.name} departs!`,
-                `Mistimed, airborne, and caught!`,
-                `${batter.name} cannot clear the fielder this time!`,
-                `Straight to hand, and that is a simple but important catch!`,
-                `The pressure tells, and ${batter.name} picks out the man!`,
-                `He has hit it, but not well enough. Caught!`,
-                `That was always catchable, and it has been taken cleanly!`
-            ],
-            lbw: [
-                `Huge shout, finger raised! ${batter.name} is trapped in front!`,
-                `Plumb! ${batter.name} is pinned right in line!`,
-                `That looked straight away, and the umpire agrees!`,
-                `Dead in front, and ${batter.name} has to go!`,
-                `${bowler.name} wins the appeal, and it is a massive wicket!`,
-                `No escape for ${batter.name} there, caught on the crease!`,
-                `That thuds into the pad and the verdict is out!`,
-                `The appeal is loud and the answer is immediate. Out!`,
-                `Pinned in front of the stumps, and ${batter.name} is gone!`,
-                `A classic lbw dismissal, and ${bowler.name} is delighted!`
-            ],
-            run_out: [
-                `Run out! Confusion in the middle and ${batter.name} is punished!`,
-                `Direct hit pressure and ${batter.name} is stranded short!`,
-                `Disaster in the running. ${batter.name} has to go!`,
-                `A mix-up proves fatal, and ${batter.name} is run out!`,
-                `That is a gift for the fielding side, and they accept it!`,
-                `There was hesitation, then panic, and now the wicket is gone!`,
-                `${batter.name} is short of the crease and the fielding side celebrates!`,
-                `Sharp work in the field turns this into a run out!`,
-                `No coordination, no safety, and no wicket left for ${batter.name}!`,
-                `The pressure creates a mistake, and the run out is complete!`
-            ],
-            stumped: [
-                `Beaten in flight and stumped smartly! ${batter.name} is gone!`,
-                `Excellent work by the keeper. ${batter.name} is stranded!`,
-                `${batter.name} advanced, missed, and pays the price!`,
-                `Out of the crease, out of control, and out of the game!`,
-                `What sharp glovework that is, ${batter.name} is stumped!`,
-                `The batter was lured out beautifully and finished off neatly!`,
-                `${bowler.name} deceives, the keeper completes, wicket falls!`,
-                `Quick hands behind the stumps and ${batter.name} is beaten!`,
-                `That is lovely spinner-keeper teamwork!`,
-                `${batter.name} lost the crease for a moment and that was enough!`
-            ],
-            hit_wicket: [
-                `Hit wicket! ${batter.name} has done the damage alone!`,
-                `Unbelievable scenes, ${batter.name} drags onto the stumps!`,
-                `In trying to play the shot, ${batter.name} has disturbed the stumps!`,
-                `That is a rare way to go, hit wicket for ${batter.name}!`,
-                `${batter.name} loses balance and loses the wicket with it!`
-            ],
-            generic: [
-                `${batter.name} is dismissed, and the bowling side breaks through!`,
-                `${bowler.name} claims the wicket, whatever the route, the result is the same!`,
-                `The breakthrough is here, and ${batter.name} has to go!`
-            ]
-        };
-
-        pool = pool.concat(byType[dismissalType] || byType.generic);
-
-        if (phase === 'death') {
-            pool = pool.concat([
-                `A wicket in the death overs is pure gold for the bowling side.`,
-                `That could be worth far more than one wicket at this stage.`,
-                `At the death, dismissals change overs and matches in a hurry.`,
-                `That is a priceless strike in the closing phase.`,
-                `The fielding side could not have asked for a better moment to strike.`
-            ]);
-        }
-
-        if (narrative === 'collapse_threat') {
-            pool = pool.concat([
-                `This innings is wobbling now, and panic may start to creep in.`,
-                `That wicket deepens the trouble considerably.`,
-                `The fielding side can sense a collapse opening up here.`,
-                `The batting order is being dragged into dangerous territory now.`,
-                `Pressure has turned into damage for the batting side.`
-            ]);
-        }
-
-        return this.pick(pool);
+    // Get bowler-archetype-aware description
+    getBowlerArchetypeDesc(styleTags, deliveryType) {
+        const boStyle = styleTags?.bowler || [];
+        if (boStyle.includes('swing_bowler')) return this.pick(['gets it to shape away', 'moves it through the air', 'finds that late swing', 'gets it hooping']);
+        if (boStyle.includes('death_specialist')) return this.pick(['executes under pressure', 'nails the yorker length', 'pins the toes', 'hits the blockhole']);
+        if (boStyle.includes('wrist_spinner')) return this.pick(['rips it past the bat', 'gets big turn', 'deceives with drift and dip', 'spins it viciously']);
+        if (boStyle.includes('finger_spinner')) return this.pick(['slides it on', 'gets it to grip and turn', 'pushes it through quicker', 'drifts it in']);
+        return null;
     }
 
-    sixLine(result, batter, bowler, context) {
-        const shotType = result.shotType || 'shot';
-        const phase = this.getPhase(context);
-        const batterState = this.inferBatterState(context);
+    // Wrap a pool entry with structure + detail metadata
+    // detail: 'high' = delivery+shot+timing+contact chain, 'medium' = partial, 'low' = fragment
+    S(text, structure, detail) { return { t: text, s: structure, d: detail || 'medium' }; }
 
-        let pool = [
-            `SIX! ${batter.name} launches it clean over the ropes!`,
-            `MAXIMUM! ${batter.name} absolutely hammers the ${shotType}!`,
-            `That has gone a long, long way from ${batter.name}!`,
-            `Into the crowd! ${batter.name} gets all of that one!`,
-            `What a strike. ${batter.name} sends it deep into the stands!`,
-            `Six more! ${batter.name} clears the boundary with ease!`,
-            `${batter.name} gets under it and it disappears for six!`,
-            `That is a towering hit from ${batter.name}!`,
-            `${batter.name} has turned that into a crowd souvenir!`,
-            `Clean swing, clean contact, and six runs!`,
-            `That is smoked by ${batter.name}, no chance for the fielders!`,
-            `${batter.name} picks the length early and dispatches it!`,
-            `The ball is gone, and the crowd loves it!`,
-            `That is not just a six, that is a statement from ${batter.name}!`,
-            `${batter.name} has nailed that and sent it into orbit!`,
-            `He has picked the bones out of that one, six!`,
-            `Explosive batting from ${batter.name}, all the way!`,
-            `The swing is violent, the result is maximum!`,
-            `That sound off the bat told the story immediately. Six!`,
-            `${batter.name} punishes the mistake in brutal fashion!`
-        ];
-
-        if (batterState === 'dominant' || batterState === 'explosive') {
-            pool = pool.concat([
-                `${batter.name} is imposing himself on the contest now.`,
-                `This is intimidation batting from ${batter.name}.`,
-                `${batter.name} looks a step ahead of the bowler right now.`,
-                `The bowler is being forced into survival mode here.`,
-                `${batter.name} is not just scoring, he is commanding the game.`
-            ]);
-        }
-
-        if (phase === 'death') {
-            pool = pool.concat([
-                `That is the kind of strike that can break a bowling plan in the death overs.`,
-                `In the death phase, a hit like that lands twice as hard.`,
-                `Exactly what the batting side wanted late in the innings.`,
-                `That is a massive blow in the endgame.`,
-                `You do not recover easily from errors like that in the death overs.`
-            ]);
-        }
-
-        return this.pick(pool);
-    }
-
-    fourLine(result, batter, bowler, context) {
-        const shotType = result.shotType || 'stroke';
-        const phase = this.getPhase(context);
-
-        let pool = [
-            `FOUR! ${batter.name} finds the gap beautifully!`,
-            `Boundary! ${batter.name} times the ${shotType} to perfection!`,
-            `Races away to the rope, four more to ${batter.name}!`,
-            `${batter.name} threads that past the field and collects four!`,
-            `That is placed, not merely hit. Four runs!`,
-            `Exquisite timing from ${batter.name}, and it reaches the boundary!`,
-            `${batter.name} leans into the shot and gets a boundary for it!`,
-            `That beats the infield and keeps racing away!`,
-            `Picked the gap, beat the chase, four runs!`,
-            `${batter.name} gets enough on it and the ball wins the race!`,
-            `Precision over power there, and it is four!`,
-            `The fielder gives chase, but the ball gets there first!`,
-            `${batter.name} finds space where none seemed available!`,
-            `That is a classy boundary from ${batter.name}!`,
-            `The placement is superb and the reward is immediate!`,
-            `${batter.name} opens the face and steers it away for four!`,
-            `That was in the slot and ${batter.name} cashes in!`,
-            `Wonderful touch from ${batter.name}, right into the gap!`,
-            `No need to overhit when timing looks like that. Four!`,
-            `${batter.name} beats the ring and wins the boundary!`
-        ];
-
-        if (phase === 'powerplay') {
-            pool = pool.concat([
-                `With fewer fielders out, timing like that becomes especially dangerous.`,
-                `That is exactly how batters exploit the powerplay.`,
-                `The field restrictions make that boundary even more costly.`,
-                `This is why powerplay discipline matters so much.`,
-                `That is smart batting in the fielding restriction phase.`
-            ]);
-        }
-
-        if ((context.consecutiveBoundaries || 0) >= 2) {
-            pool = pool.concat([
-                `${bowler.name} is being picked apart here.`,
-                `Pressure is rapidly shifting onto the bowling side now.`,
-                `The batter has found a groove and ${bowler.name} is under fire.`,
-                `This over is slipping away from ${bowler.name}.`,
-                `The fielding side desperately needs a reset.`
-            ]);
-        }
-
-        return this.pick(pool);
-    }
-
-    dotLine(result, batter, bowler, context) {
-        const pressure = this.getPressureLevel(context);
-        const batterState = this.inferBatterState(context);
-
-        let pool = [
-            `Dot ball. ${bowler.name} wins that exchange.`,
-            `No run, and that is a useful ball for the fielding side.`,
-            `${batter.name} cannot find a way through, dot delivery.`,
-            `Tight bowling, nothing available there.`,
-            `No scoring opportunity on that one.`,
-            `${bowler.name} keeps things under control, dot ball.`,
-            `That is well managed by ${bowler.name}.`,
-            `A quiet ball, and the bowler will take it gladly.`,
-            `${batter.name} is forced to respect that delivery.`,
-            `Nothing off it, the pressure ticks up.`,
-            `That is a small win for ${bowler.name}.`,
-            `No release shot available there for ${batter.name}.`,
-            `The field closes in and the run does not come.`,
-            `Very little room to work with there.`,
-            `${bowler.name} does the job with that delivery.`,
-            `The batter is kept waiting, and still gets nothing.`,
-            `Neatly controlled, no run.`,
-            `That ball asks a question and gives no easy answer.`,
-            `No damage on the scoreboard from that delivery.`,
-            `The bowler keeps the squeeze in place.`
-        ];
-
-        if (pressure === 'high' || pressure === 'extreme') {
-            pool = pool.concat([
-                `And in this moment, every dot feels heavier than normal.`,
-                `That does more on the mind than on the scoreboard.`,
-                `The silence after a dot like that can be deafening.`,
-                `Pressure like this turns dots into genuine weapons.`,
-                `The fielding side will feel the psychological value of that one.`
-            ]);
-        }
-
-        if (batterState === 'restless') {
-            pool = pool.concat([
-                `${batter.name} is starting to look a little impatient now.`,
-                `You can sense the batter wanting to force something.`,
-                `This is the kind of sequence that drags risky shots out of players.`,
-                `${batter.name} is being denied rhythm here.`,
-                `The frustration may be starting to build for ${batter.name}.`
-            ]);
-        }
-
-        return this.pick(pool);
-    }
-
-    runLine(result, batter, bowler, context) {
+    generatePrimaryCall(event, intent) {
+        const { outcomeType, batterName, bowlerName, result, geography, dismissalType, shotType, deliveryType, energy, contactType, timingDetail, styleTags } = event;
         const runs = result.runs || 0;
-        const phase = this.getPhase(context);
+
+        // Build clauses from phrase banks
+        const deliv   = this.getDeliveryClause(deliveryType, bowlerName);
+        const timing  = this.getTimingClause(timingDetail, batterName);
+        const contact = this.getContactClause(contactType);
+        const outcome = this.getOutcomeClause(outcomeType, runs);
+        const path    = this.getBallPath(outcomeType, contactType);
+        const verb    = this.getArchetypeVerb(styleTags, outcomeType);
+        const boDesc  = this.getBowlerArchetypeDesc(styleTags, deliveryType);
+
+        // ── Compatibility guard ──────────────
+        const timingIsGood = (timingDetail === 'perfect' || timingDetail === 'good');
+        const contactIsClean = (contactType === 'sweet' || contactType === 'clean');
+        const safeTiming = (timingIsGood && !contactIsClean) ? this.getTimingClause('good', batterName) : timing;
+        const safeContact = (contactIsClean && !timingIsGood && timingDetail !== 'good') ? this.getContactClause('clean') : contact;
 
         let pool = [];
 
-        if (runs === 1) {
-            pool = [
-                `Just a single. ${batter.name} nudges it into space.`,
-                `One run taken, and the strike rotates.`,
-                `${batter.name} works it away for a single.`,
-                `A simple single, but useful for keeping things moving.`,
-                `Tapped into the gap for one.`,
-                `${batter.name} gets off safely with a single.`,
-                `They settle for one and move on.`,
-                `A controlled push for a single.`,
-                `One more to the total, neatly done.`,
-                `${batter.name} keeps the board ticking with a single.`,
-                `Soft hands and a quick single.`,
-                `Just enough space found for one run.`,
-                `The batter opens the face and takes one.`,
-                `There is the easy single on offer.`,
-                `Quick feet, quick call, one run.`
-            ];
-        } else if (runs === 2) {
-            pool = [
-                `Two runs taken, and that is good running between the wickets.`,
-                `${batter.name} comes back strongly for the second.`,
-                `They turn one into two with sharp awareness.`,
-                `Placed well enough for a comfortable couple.`,
-                `Excellent hustle, and they get two.`,
-                `${batter.name} pushes hard and is rewarded with a brace.`,
-                `The gap is big enough, and they collect two.`,
-                `Well judged running brings a pair of runs.`,
-                `That is smart cricket, two taken quickly.`,
-                `${batter.name} works hard for the second run.`,
-                `A handy couple added to the total.`,
-                `They run that one aggressively and get the full two.`,
-                `Sharp calling in the middle, two runs.`,
-                `That is busy batting from ${batter.name}.`,
-                `The placement and the running combine for two.`
-            ];
-        } else if (runs === 3) {
-            pool = [
-                `Three runs, and that is excellent running all the way through.`,
-                `${batter.name} keeps pushing and gets three for it.`,
-                `Good placement, good urgency, three taken.`,
-                `They come back for the third, and they make it comfortably.`,
-                `That is terrific running between the wickets.`,
-                `${batter.name} turns a good shot into three runs.`,
-                `The outfield and angles allow them three here.`,
-                `Energetic work in the middle, three added.`,
-                `They never switch off and are rewarded with three.`,
-                `That is value extracted from the gap, three runs.`
-            ];
-        } else {
-            pool = [
-                `${this.formatRuns(runs)} taken by ${batter.name}.`,
-                `${batter.name} works it away for ${this.formatRuns(runs)}.`,
-                `They collect ${this.formatRuns(runs)} from that ball.`,
-                `${this.formatRuns(runs)} added to the total.`,
-                `Smart batting from ${batter.name}, ${this.formatRuns(runs)} taken.`
-            ];
+        // ── WICKETS ──────────────────────────
+        if (outcomeType === 'wicket') {
+            // buildWicketLines returns plain strings, wrap with structure
+            for (const line of this.buildWicketLines(event)) {
+                pool.push(this.S(line, 'wicket_call'));
+            }
+            // Add low-key wicket lines
+            pool.push(this.S(`He's got him. ${bowlerName} strikes.`, 'spoken_fragment'));
+            pool.push(this.S(`That will do. Breakthrough.`, 'spoken_fragment'));
+            pool.push(this.S(`Out. The pressure tells.`, 'spoken_fragment'));
+        }
+        // ── SIXES ────────────────────────────
+        else if (outcomeType === 'six') {
+            pool.push(this.S(`${deliv}, ${safeTiming}, ${safeContact}, ${outcome}!`, 'delivery_led', 'high'));
+            pool.push(this.S(`${deliv}, and ${batterName} sends it ${geography} for six!`, 'delivery_led', 'high'));
+            pool.push(this.S(`${batterName} ${verb} the ${shotType} against the ${deliveryType}, and it flies ${geography} for six!`, 'batter_led', 'high'));
+            pool.push(this.S(`${safeTiming} into the ${shotType}, ${outcome}. What a strike!`, 'batter_led', 'high'));
+            pool.push(this.S(`Six! ${batterName} ${verb} the ${deliveryType} ${geography}.`, 'outcome_led', 'medium'));
+            pool.push(this.S(`Maximum! ${deliv} and ${batterName} has absolutely ${this.pick(['nailed it', 'creamed it', 'sent it into orbit'])}.`, 'outcome_led', 'medium'));
+            pool.push(this.S(`That's six. ${batterName} clears the ropes off the ${deliveryType}.`, 'minimal', 'low'));
+            pool.push(this.S(`Gone. All the way. ${shotType} off the ${deliveryType} for six.`, 'spoken_fragment', 'low'));
+            pool.push(this.S(`Up. Over. Six.`, 'spoken_fragment', 'low'));
+        }
+        // ── FOURS ────────────────────────────
+        else if (outcomeType === 'four') {
+            if (contactType === 'edge') {
+                pool.push(this.S(`${deliv}, ${contact}, and it streaks to the boundary for four! Lucky runs.`, 'delivery_led', 'high'));
+                pool.push(this.S(`Four! But it's off the edge. ${deliv} nearly does the trick, but ${batterName} profits.`, 'outcome_led', 'high'));
+                pool.push(this.S(`Streaky boundary! ${batterName} ${contact} and it races past the slips for four.`, 'batter_led', 'high'));
+                pool.push(this.S(`Edge. Four. ${bowlerName} won't be happy.`, 'spoken_fragment', 'low'));
+            } else if (contactType === 'weak') {
+                pool.push(this.S(`${deliv}, ${safeTiming}, ${contact}, but it still finds the gap for four.`, 'delivery_led', 'high'));
+                pool.push(this.S(`Not the cleanest from ${batterName}. ${contact} on the ${shotType}, but it trickles to the boundary.`, 'batter_led', 'high'));
+                pool.push(this.S(`Miscued. But safe. Four runs.`, 'spoken_fragment', 'low'));
+            } else {
+                pool.push(this.S(`${deliv}, ${safeTiming}, ${safeContact}, ${outcome}.`, 'delivery_led', 'high'));
+                pool.push(this.S(`${deliv}${timingDetail === 'perfect' ? ' and' : ','} ${batterName} ${verb} the ${shotType} ${geography}. Four runs.`, 'delivery_led', 'high'));
+                pool.push(this.S(`${batterName} ${verb} the ${shotType} off the ${deliveryType}, and ${path} for four.`, 'batter_led', 'high'));
+                pool.push(this.S(`${safeTiming} into the ${shotType}, ${outcome}. Lovely batting.`, 'batter_led', 'high'));
+                pool.push(this.S(`Four! ${batterName} finds the boundary ${geography} off the ${deliveryType}.`, 'outcome_led', 'medium'));
+                pool.push(this.S(`Boundary! ${deliv}, and ${batterName} has ${this.pick(['timed it superbly', 'dispatched it cleanly', 'placed it perfectly'])}.`, 'outcome_led', 'medium'));
+                pool.push(this.S(`To the fence. ${batterName} ${this.pick(['drives', 'cuts', 'pulls', 'flicks', 'glides'])} the ${deliveryType} for four.`, 'minimal', 'low'));
+                pool.push(this.S(`Four. Clean. ${geography}.`, 'spoken_fragment', 'low'));
+            }
+        }
+        // ── DOT BALLS ────────────────────────
+        else if (outcomeType === 'dot') {
+            if (contactType === 'miss') {
+                pool.push(this.S(`${deliv}, ${timing}, ${contact}. Dot ball.`, 'delivery_led', 'high'));
+                pool.push(this.S(`${deliv} and ${batterName} ${this.pick(this.PB.contactClauses.miss)}. No run.`, 'delivery_led', 'high'));
+                pool.push(this.S(`${timing} against the ${deliveryType}. ${bowlerName} wins that exchange.`, 'batter_led', 'high'));
+                pool.push(this.S(`Beaten! ${batterName} ${this.pick(['swings past it', 'is through the shot too early', 'never picks it up'])}. Dot ball.`, 'outcome_led', 'medium'));
+                pool.push(this.S(`Nothing. Beaten.`, 'spoken_fragment', 'low'));
+                pool.push(this.S(`Miss. ${bowlerName} on top.`, 'spoken_fragment', 'low'));
+            } else if (contactType === 'weak') {
+                pool.push(this.S(`${deliv}, ${timing}, ${contact}. Can't get it away.`, 'delivery_led', 'high'));
+                pool.push(this.S(`${batterName} jams out the ${deliveryType} weakly. No run.`, 'batter_led', 'high'));
+                pool.push(this.S(`${timing} on the ${shotType}, ${contact}. Dot ball.`, 'batter_led', 'high'));
+                pool.push(this.S(`Not timed. But safe.`, 'spoken_fragment', 'low'));
+            } else if (contactType === 'edge') {
+                pool.push(this.S(`${deliv}, ${contact}, but it drops safely for no run.`, 'delivery_led', 'high'));
+                pool.push(this.S(`An edge from ${batterName} against the ${deliveryType}. No damage done.`, 'batter_led', 'high'));
+            } else {
+                pool.push(this.S(`${deliv}, ${safeTiming}, but ${this.pick(this.PB.ballPath.dead)}. No run.`, 'delivery_led', 'high'));
+                pool.push(this.S(`Well bowled. ${batterName} defends the ${deliveryType} solidly.`, 'batter_led', 'medium'));
+                pool.push(this.S(`${batterName} blocks the ${deliveryType}. ${this.pick(['Good defensive technique.', 'Solid block.', 'Respecting the bowling.'])}`, 'batter_led', 'medium'));
+                pool.push(this.S(`Defended. No run.`, 'spoken_fragment', 'low'));
+                pool.push(this.S(`Nothing offered. ${bowlerName} keeps it tight.`, 'spoken_fragment', 'low'));
+                pool.push(this.S(`Tidy from ${bowlerName}. No release.`, 'spoken_fragment', 'low'));
+            }
+        }
+        // ── RUNS (1, 2, 3+) — deeply enriched ──
+        else {
+            if (contactType === 'weak') {
+                pool.push(this.S(`${deliv}, ${timing}, ${contact}, but ${this.pick(['they scramble', 'they hustle'])} through for ${runs}.`, 'delivery_led', 'high'));
+                pool.push(this.S(`Not cleanly hit, ${contact} off the ${deliveryType}, but ${outcome}.`, 'batter_led', 'high'));
+                pool.push(this.S(`Ugly shot. But ${runs === 1 ? 'a run' : runs + ' runs'}.`, 'spoken_fragment', 'low'));
+            } else if (contactType === 'edge') {
+                pool.push(this.S(`${deliv}, ${contact}, and it squirts away for ${runs}.`, 'delivery_led', 'high'));
+                pool.push(this.S(`Off the edge against the ${deliveryType}! ${batterName} ${this.pick(['steals', 'squeezes', 'nicks'])} ${runs === 1 ? 'a single' : runs + ' runs'}.`, 'batter_led', 'high'));
+            } else if (runs === 1) {
+                pool.push(this.S(`${deliv}, ${safeTiming}, ${outcome}.`, 'delivery_led', 'high'));
+                pool.push(this.S(`${batterName} ${this.pick(['nudges', 'works', 'taps', 'glances', 'drops'])} the ${deliveryType} ${geography} for a quick single.`, 'batter_led', 'high'));
+                pool.push(this.S(`Soft hands from ${batterName}. Easy single.`, 'batter_led', 'medium'));
+                pool.push(this.S(`Just a ${this.pick(['nudge', 'push', 'flick', 'dab'])} into the ${this.pick(['gap', 'leg side', 'off side'])}, and they get one.`, 'batter_led', 'medium'));
+                pool.push(this.S(`Strike rotated. ${batterName} ${this.pick(['manipulates', 'works', 'uses'])} the ${shotType} smartly.`, 'outcome_led', 'medium'));
+                pool.push(this.S(`That'll do. Single taken.`, 'spoken_fragment', 'low'));
+                pool.push(this.S(`One. ${this.pick(['Keeps it ticking.', 'Smart cricket.', 'Strike over.'])}`, 'spoken_fragment', 'low'));
+            } else if (runs === 2) {
+                pool.push(this.S(`${deliv}, ${safeTiming}, ${outcome}.`, 'delivery_led', 'high'));
+                pool.push(this.S(`${batterName} ${this.pick(['works', 'pushes', 'punches', 'clips'])} the ${deliveryType} ${geography}. ${this.pick(['Good running gets them two.', 'They come back for the second.', 'Sharp calling, and they complete two.'])}`, 'batter_led', 'high'));
+                pool.push(this.S(`Pushed into the gap. Good running between the wickets for a couple.`, 'outcome_led', 'medium'));
+                pool.push(this.S(`Two. Smart running. ${this.pick(['Turned one into two.', 'Alert between the wickets.', 'Pressure on the fielder.'])}`, 'spoken_fragment', 'low'));
+            } else {
+                pool.push(this.S(`${deliv}, ${safeTiming}, ${outcome}.`, 'delivery_led', 'high'));
+                pool.push(this.S(`${batterName} plays the ${shotType} off the ${deliveryType}, ${outcome}.`, 'batter_led', 'high'));
+                pool.push(this.S(`${runs} runs. ${batterName} works the ${deliveryType} ${geography}.`, 'outcome_led', 'medium'));
+                pool.push(this.S(`${safeTiming} on the ${shotType}. ${this.getOutcomeClause('runs', runs)}.`, 'minimal', 'low'));
+            }
         }
 
-        if (runs >= 2) {
-            pool = pool.concat([
-                `That is excellent conversion between the wickets.`,
-                `The awareness there was first-rate.`,
-                `This is how batters squeeze value out of the field.`,
-                `Nothing loose in the running there.`,
-                `The decision-making between the wickets was spot on.`
-            ]);
+        // Phase-aware detail injection: add bowler archetype line for detail richness
+        if (boDesc && outcomeType !== 'wicket') {
+            pool.push(this.S(`${bowlerName} ${boDesc}. ${batterName} plays the ${shotType}, ${outcome}.`, 'delivery_led', 'high'));
         }
 
-        if (phase === 'middle' && this.maybe(0.3)) {
-            pool = pool.concat([
-                `These are the runs that quietly hold an innings together in the middle overs.`,
-                `Not flashy, but deeply useful in this phase of the game.`,
-                `Middle-over cricket is often built on exactly those runs.`,
-                `That is smart tempo management from the batting side.`,
-                `The middle overs reward this kind of busy batting.`
-            ]);
+        // Phase-aware overlays for ordinary balls
+        if (event.phase === 'powerplay' && (outcomeType === 'dot' || outcomeType === 'runs')) {
+            pool.push(this.S(`Powerplay ball. ${deliv}, ${safeTiming}. ${outcome}.`, 'delivery_led', 'high'));
+        } else if (event.phase === 'death' && outcomeType === 'dot') {
+            pool.push(this.S(`Death overs. ${deliv}, ${batterName} can't get it away. Dot ball.`, 'delivery_led', 'high'));
+        } else if (event.phase === 'death' && runs === 1) {
+            pool.push(this.S(`Just a single in the death. ${deliv}, ${safeTiming}. ${batterName} can't get under it.`, 'delivery_led', 'high'));
         }
 
-        return this.pick(pool);
+        // Intent-based injections
+        if (intent === 'match_consequence' && outcomeType === 'four') {
+            pool.unshift(this.S(`Four. That changes the equation. ${batterName} ${verb} the ${deliveryType} ${geography}.`, 'outcome_led', 'high'));
+        } else if (intent === 'pressure_moment' && outcomeType === 'dot') {
+            pool.unshift(this.S(`Dot ball. The pressure climbs. ${deliv} and ${batterName} can't score.`, 'outcome_led', 'high'));
+        }
+
+        // Sort pool: detail-rich lines first, then medium, then low
+        const detailOrder = { high: 0, medium: 1, low: 2 };
+        pool.sort((a, b) => (detailOrder[a.d] || 1) - (detailOrder[b.d] || 1));
+
+        // Take candidates, more for important events
+        const maxCandidates = event.importance >= 5 ? 8 : 5;
+        const topDetail = pool.slice(0, Math.max(3, Math.ceil(pool.length * 0.6)));
+        const rest = pool.slice(Math.ceil(pool.length * 0.6));
+        const shuffled = [...this.shuffle(topDetail), ...this.shuffle(rest)];
+        const options = shuffled.slice(0, Math.min(shuffled.length, maxCandidates));
+
+        return { speaker: 'main', energy, textOptions: options.map(o => o.t), structureOptions: options.map(o => o.s), detailOptions: options.map(o => o.d), _event: event };
+    }
+
+    // Returns { speaker: 'analyst', energy: 'low', textOptions: [...], structureOptions: [...] }
+    generateSecondaryCall(event, intent) {
+        const { setupPayoff, consequence, batterName, bowlerName, result, timingDetail, contactType, deliveryType, shotType, phase } = event;
+
+        let pool = [];
+
+        if (intent === 'setup_payoff' && setupPayoff) pool.push(this.S(setupPayoff, 'analyst_setup', 'medium'));
+
+        if (event.outcomeType === 'wicket') {
+            if (timingDetail === 'very_early') pool.push(this.S(`Premeditated the swing too early. Can't go hard at the ${deliveryType} without reading the length.`, 'analyst_technical', 'high'));
+            else if (timingDetail === 'very_late') pool.push(this.S(`Pure pace did the job. ${batterName} couldn't react to that ${deliveryType} in time.`, 'analyst_technical', 'high'));
+            else pool.push(this.S(`That's a big breakthrough. The bowling side earned that.`, 'analyst_reward', 'medium'));
+            if (contactType === 'edge') pool.push(this.S(`The ${deliveryType} found the edge. ${bowlerName} had been probing that channel.`, 'analyst_technical', 'high'));
+            if (contactType === 'miss') pool.push(this.S(`Complete deception. ${batterName} had no read on the ${deliveryType}.`, 'analyst_technical', 'high'));
+            pool.push(this.S(`He'll be disappointed with that. A ${this.pick(['soft', 'careless', 'poor'])} way to go.`, 'analyst_context', 'medium'));
+            pool.push(this.S(`${bowlerName} gets the reward. That's what hitting the right areas does.`, 'analyst_reward', 'medium'));
+            if (phase === 'death') pool.push(this.S(`Huge in the context of this innings. That wicket could be the difference.`, 'analyst_context', 'medium'));
+        }
+
+        else if (intent === 'impact_hit') {
+            if (contactType === 'sweet') pool.push(this.S(`Perfectly timed. Pure bat swing, devastating result.`, 'analyst_technical', 'high'));
+            else pool.push(this.S(`That changes the over. ${bowlerName} has to rethink now.`, 'analyst_pressure', 'medium'));
+            pool.push(this.S(`${batterName} is in the mood. That should worry the bowling side.`, 'analyst_context', 'medium'));
+            pool.push(this.S(`Clinical hitting. You don't usually come back from that in a spell.`, 'analyst_pressure', 'medium'));
+        }
+
+        else if (consequence === 'equation_shift') {
+            pool.push(this.S(`That changes the equation straight away. The chase gets a lift.`, 'analyst_context', 'medium'));
+            pool.push(this.S(`Momentum is shifting. The required rate just dropped.`, 'analyst_pressure', 'medium'));
+            pool.push(this.S(`The equation looks very different after that boundary.`, 'analyst_context', 'medium'));
+        }
+
+        else if (consequence === 'escalating_rate') {
+            pool.push(this.S(`These dots are costing. The required rate is climbing.`, 'analyst_pressure', 'medium'));
+            pool.push(this.S(`Another dot ball, another tick on the scoreboard pressure.`, 'analyst_pressure', 'medium'));
+        }
+
+        else if (event.outcomeType === 'dot') {
+            if (contactType === 'miss') {
+                pool.push(this.S(`Classic ${deliveryType} bowling. Draws ${batterName} in, then beats him.`, 'analyst_technical', 'high'));
+                pool.push(this.S(`Good bowling wins that battle. ${bowlerName} asked the question and got the answer.`, 'analyst_reward', 'medium'));
+            }
+            else if (timingDetail === 'very_early' || timingDetail === 'early') pool.push(this.S(`The ${deliveryType} held ${batterName} up. Through the shot too early.`, 'analyst_technical', 'high'));
+            else if (this.duelState.bowlerOnTopScore >= 3) pool.push(this.S(`${bowlerName} is in complete control. ${batterName} struggling to score.`, 'analyst_pressure', 'medium'));
+            else if (this.duelState.consecutiveDots >= 3) {
+                pool.push(this.S(`You can see the pressure building on ${batterName} now.`, 'analyst_pressure', 'medium'));
+                pool.push(this.S(`${this.duelState.consecutiveDots} dot balls in a row. Something has to give.`, 'analyst_pressure', 'medium'));
+            }
+        }
+
+        else if (event.outcomeType === 'four') {
+            if (this.duelState.bowlerOnTopScore >= 3) pool.push(this.S(`Release shot. ${batterName} needed that after a few quiet balls.`, 'analyst_release', 'medium'));
+            else if (contactType === 'edge') pool.push(this.S(`${bowlerName} will feel hard done by. Beat the bat, but the edge found the gap.`, 'analyst_technical', 'high'));
+            else {
+                const prior = this.duelState.lastBall;
+                if (prior && prior.contactType === 'miss') pool.push(this.S(`Beaten last ball, boundary this ball. That's the sign of a quality batter.`, 'analyst_context', 'medium'));
+            }
+            pool.push(this.S(`Good shot selection there. Read the length early and committed.`, 'analyst_technical', 'high'));
+            pool.push(this.S(`That's exactly where you'd want to hit the ${deliveryType}. Textbook.`, 'analyst_technical', 'high'));
+        }
+
+        else if (event.outcomeType === 'six') {
+            if (timingDetail === 'perfect' && contactType === 'sweet') pool.push(this.S(`That is elite striking. Perfect read, perfect execution.`, 'analyst_technical', 'high'));
+            else if (contactType === 'weak') pool.push(this.S(`Didn't quite get hold of it, but it carries. Fortune favours the brave.`, 'analyst_context', 'medium'));
+            pool.push(this.S(`${bowlerName} won't want to see that again. That over might need a reset.`, 'analyst_pressure', 'medium'));
+            pool.push(this.S(`When ${batterName} hits them like that, the field settings become irrelevant.`, 'analyst_context', 'medium'));
+        }
+
+        if (pool.length === 0) return null;
+        const shuffled = this.shuffle(pool);
+        const options = shuffled.slice(0, 3);
+        return { speaker: 'analyst', energy: 'low', textOptions: options.map(o => o.t), structureOptions: options.map(o => o.s), _event: event };
+    }
+
+    generateTertiaryCall(event) {
+        if (event.importance < 5) return null; 
+
+        const milestone = this.checkMilestones(event.context, event.batter);
+        if (milestone) return { speaker: 'main', energy: 'high', text: milestone, _event: event };
+
+        if (event.context.innings === 2 && (event.context.runsNeeded ?? 999) <= 10) {
+            return { speaker: 'main', energy: 'medium', text: `Just ${event.context.runsNeeded} needed now. This is going to be tight.`, _event: event };
+        }
+
+        return null;
     }
 
     // =========================================================
-    // Narrative / Context Layers
+    // Modifiers & Duel State Management
     // =========================================================
 
+    // ── State update ─────────────────────────────────────
+    updateDuelState(event) {
+        const { outcomeType, contactType } = event;
+
+        if (outcomeType === 'dot') {
+            this.duelState.consecutiveDots++;
+            this.duelState.consecutiveBoundaries = 0;
+        } else if (outcomeType === 'four' || outcomeType === 'six') {
+            this.duelState.consecutiveBoundaries++;
+            this.duelState.consecutiveDots = 0;
+        } else {
+            this.duelState.consecutiveDots = 0;
+            this.duelState.consecutiveBoundaries = 0;
+        }
+
+        if (contactType === 'miss' || contactType === 'edge' || contactType === 'weak') {
+            this.duelState.falseShotsSinceBoundary++;
+        } else {
+            this.duelState.falseShotsSinceBoundary = 0;
+        }
+
+        if (outcomeType === 'dot' && (contactType === 'miss' || contactType === 'edge')) {
+            this.duelState.bowlerOnTopScore++;
+        } else if (outcomeType === 'four' || outcomeType === 'six') {
+            this.duelState.bowlerOnTopScore = Math.max(0, this.duelState.bowlerOnTopScore - 2);
+        } else {
+            this.duelState.bowlerOnTopScore = Math.max(0, this.duelState.bowlerOnTopScore - 1);
+        }
+
+        this.duelState.lastBall = { outcomeType, contactType };
+    }
+
+    inferSetupPayoff(event) {
+        const dots = this.duelState.consecutiveDots;
+        const boundaries = this.duelState.consecutiveBoundaries;
+        const bowlerTop = this.duelState.bowlerOnTopScore;
+        const falseShots = this.duelState.falseShotsSinceBoundary;
+
+        const lines = [];
+
+        if (dots >= 4 && (event.outcomeType === 'four' || event.outcomeType === 'six')) {
+            lines.push(`After a few quiet balls, ${event.batterName} finally found the release shot.`);
+            lines.push(`Classic double bluff. Full last ball, short this time.`);
+        }
+
+        if (boundaries >= 2 && event.outcomeType === 'dot') {
+            lines.push(`After consecutive boundaries, ${event.bowlerName} regroups and fires back.`);
+        }
+
+        if (bowlerTop >= 4 && event.outcomeType === 'wicket') {
+            lines.push(`${event.bowlerName} had been testing ${event.batterName} for a few balls, and the breakthrough is the reward.`);
+        }
+
+        if (falseShots >= 3 && event.outcomeType === 'wicket') {
+            lines.push(`The signs were all there. ${event.batterName} had been beaten multiple times before that dismissal arrived.`);
+        }
+
+        return lines.length > 0 ? this.pick(lines) : null;
+    }
+
+    // Milestone checker
     checkMilestones(context, batter) {
         const runs = context.currentBatterRuns || 0;
+        const bId = batter?.id || 'unknown';
+        const bName = batter?.name || 'Batter';
 
-        if (runs >= 50 && runs < 56 && !this.milestones.has(`${batter.id}_50`)) {
-            this.milestones.add(`${batter.id}_50`);
-            return this.pick([
-                `🎉 Fifty for ${batter.name}! A fine innings reaches an important landmark!`,
-                `🎉 ${batter.name} brings up a half-century and earns the applause around the ground!`,
-                `🎉 50 up for ${batter.name}, built with quality and control!`,
-                `🎉 Half-century for ${batter.name}! This has been a knock of substance!`,
-                `🎉 ${batter.name} reaches fifty and does it in style!`,
-                `🎉 That is a deserved fifty for ${batter.name}!`,
-                `🎉 The landmark arrives, ${batter.name} has a fifty to the name now!`,
-                `🎉 A strong innings from ${batter.name} is now officially a half-century!`
-            ]);
+        if (runs >= 50 && !this.milestones.has(`${bId}_50`)) {
+            this.milestones.add(`${bId}_50`);
+            return `\ud83c\udf89 That brings up a fine fifty for ${bName}.`;
         }
 
-        if (runs >= 100 && runs < 106 && !this.milestones.has(`${batter.id}_100`)) {
-            this.milestones.add(`${batter.id}_100`);
-            return this.pick([
-                `💯 Century for ${batter.name}! A magnificent innings reaches three figures!`,
-                `💯 ${batter.name} gets to a hundred, and the crowd rises in appreciation!`,
-                `💯 A superb hundred from ${batter.name}! This has been a masterclass!`,
-                `💯 ${batter.name} reaches three figures with a truly commanding knock!`,
-                `💯 Brilliant from ${batter.name}, a century of quality and nerve!`,
-                `💯 The hundred is complete, and it may prove match-defining!`,
-                `💯 A landmark innings from ${batter.name}, that is a brilliant century!`,
-                `💯 ${batter.name} has turned a strong innings into a memorable one!`
-            ]);
+        if (runs >= 100 && !this.milestones.has(`${bId}_100`)) {
+            this.milestones.add(`${bId}_100`);
+            return `\ud83d\udcaf Century for ${bName}! A magnificent innings.`;
         }
 
         return null;
     }
 
-    pressureLine(context, batter, bowler, result) {
-        if (!this.maybe(0.28)) return null;
-
-        const pressure = this.getPressureLevel(context);
-
-        if (context.innings === 2 && context.runsNeeded !== null && context.runsNeeded !== undefined) {
-            if (context.runsNeeded <= 6) {
-                return this.pick([
-                    `Just ${context.runsNeeded} needed now. One clean strike can finish this.`,
-                    `${context.runsNeeded} runs to win, and every heartbeat in the ground feels louder.`,
-                    `Only ${context.runsNeeded} left. Nerve matters as much as technique now.`,
-                    `${context.runsNeeded} required. The finish line is close enough to feel.`,
-                    `This is now a tiny chase with massive pressure packed into it.`
-                ]);
-            }
-
-            if ((context.requiredRunRate || 0) >= 14) {
-                return this.pick([
-                    `Required rate up at ${context.requiredRunRate}. This chase is becoming steep.`,
-                    `${context.requiredRunRate} needed per over now, and the pressure is climbing.`,
-                    `The asking rate is ${context.requiredRunRate}, and it is starting to stare the batters down.`,
-                    `This chase is no longer comfortable, the rate has climbed to ${context.requiredRunRate}.`,
-                    `That required rate tells its own story, this is getting demanding.`
-                ]);
-            }
-
-            if ((context.requiredRunRate || 99) <= 7 && context.runsNeeded > 0) {
-                return this.pick([
-                    `The chase is under control for now, but control can vanish with one wicket.`,
-                    `They still have breathing room, though cricket changes quickly.`,
-                    `This remains manageable if the batting side stays calm.`,
-                    `The numbers favor the chase at the moment, but only if they avoid panic.`,
-                    `For now, the equation is workable and the batting side knows it.`
-                ]);
-            }
-        }
-
-        if ((context.consecutiveDots || 0) >= 4) {
-            return this.pick([
-                `${context.consecutiveDots} dots in a row. The squeeze is becoming serious.`,
-                `A chain of dot balls, and the pressure keeps thickening.`,
-                `${context.consecutiveDots} scoreless deliveries. The fielding side is tightening the screws.`,
-                `The batting side is being starved of release here.`,
-                `This sequence of dots is starting to shape decisions.`
-            ]);
-        }
-
-        if ((context.consecutiveBoundaries || 0) >= 3) {
-            return this.pick([
-                `${context.consecutiveBoundaries} boundaries in a row. ${bowler.name} is under serious attack.`,
-                `This has turned into a proper assault on the bowling.`,
-                `The batter has found the range, and the bowler is taking damage.`,
-                `That is relentless pressure on the fielding side now.`,
-                `The over is running away from the bowling team.`
-            ]);
-        }
-
-        if (pressure === 'extreme') {
-            return this.pick([
-                `This game is now being played as much in the mind as on the pitch.`,
-                `The moment has reached genuine high-pressure territory.`,
-                `This is where composure becomes the most valuable skill on the field.`,
-                `Everything feels sharper when the pressure reaches this level.`,
-                `These are the moments that define matches and reputations.`
-            ]);
-        }
-
-        return null;
+    maxLinesFromImportance(score) {
+        if (score >= 7) return 3;
+        if (score >= 4) return 2;
+        return 1;
     }
 
-    momentumLine(context, batter, bowler, result) {
-        if (!this.maybe(0.24)) return null;
-        if (result.wicket) return null;
-
-        const narrative = this.inferMatchNarrative(context);
-        const batterState = this.inferBatterState(context);
-
-        if (narrative === 'onslaught') {
-            return this.pick([
-                `${bowler.name} is running out of comfortable options here.`,
-                `${batter.name} has seized momentum and refuses to let go.`,
-                `The balance of fear is shifting toward the bowler now.`,
-                `${batter.name} is dictating the terms of this battle.`,
-                `The fielding side badly needs a circuit-breaker.`
-            ]);
-        }
-
-        if (narrative === 'squeeze') {
-            return this.pick([
-                `${batter.name} is being denied rhythm ball after ball.`,
-                `This is classic pressure building from the bowling side.`,
-                `${bowler.name} is making every scoring shot feel earned.`,
-                `The fielding side is controlling the emotional pace of the over.`,
-                `This is the kind of spell that can drag a mistake out of a batter.`
-            ]);
-        }
-
-        if (narrative === 'finish_line') {
-            return this.pick([
-                `The target is near, but closeness can intensify nerves.`,
-                `When the finish line is this close, every decision feels magnified.`,
-                `These are the moments where calm hands matter most.`,
-                `The batting side can almost taste victory, which is exactly why tension rises.`,
-                `The end is near, but endings are rarely simple in cricket.`
-            ]);
-        }
-
-        if (batterState === 'dominant') {
-            return this.pick([
-                `${batter.name} looks deeply set now and full of certainty.`,
-                `There is authority in the way ${batter.name} is batting right now.`,
-                `${batter.name} appears to be reading the game early and clearly.`,
-                `This is the presence of a batter who feels in command.`,
-                `${batter.name} is operating from a place of confidence now.`
-            ]);
-        }
-
-        if (batterState === 'restless') {
-            return this.pick([
-                `${batter.name} looks like a player searching for release.`,
-                `There is a hint of impatience in ${batter.name}'s body language.`,
-                `${batter.name} may be getting tempted into forcing the next ball.`,
-                `The bowler will sense that restlessness.`,
-                `This is a delicate patch for ${batter.name}.`
-            ]);
-        }
-
-        return null;
+    pick(arr) {
+        if (!arr || !arr.length) return '';
+        return arr[Math.floor(Math.random() * arr.length)];
     }
 
-    phaseLine(context, result, batter, bowler) {
-        if (!this.maybe(0.16)) return null;
+    // Clean final output: underscores to spaces, strip em/en dashes
+    sanitize(text) {
+        if (!text) return text;
+        return text
+            .replace(/_/g, ' ')
+            .replace(/[\u2014\u2013]/g, ',')
+            .replace(/\s{2,}/g, ' ')
+            .trim();
+    }
 
-        const phase = this.getPhase(context);
+    rememberText(text) {
+        if (!text) return;
+        this.recentExactTexts.unshift(text);
+        if (this.recentExactTexts.length > this.maxRecentMemory) this.recentExactTexts.pop();
+    }
+    rememberSig(sig) {
+        if (!sig) return;
+        this.recentSemanticSigs.unshift(sig);
+        if (this.recentSemanticSigs.length > this.maxRecentMemory) this.recentSemanticSigs.pop();
+    }
 
-        if (phase === 'powerplay') {
-            return this.pick([
-                `The powerplay keeps boundaries expensive and mistakes visible.`,
-                `Field restrictions make every gap more dangerous in this phase.`,
-                `This is the part of the innings where timing can hurt quickly.`,
-                `The powerplay rewards boldness, but only if the execution is clean.`,
-                `There are scoring opportunities everywhere in this fielding setup.`
-            ]);
+    getSemanticSignatureFromEvent(text, event, obj) {
+        if (!event) return text.toLowerCase();
+        return [
+            obj.speaker,
+            event.outcomeType,
+            event.shotType,
+            event.deliveryType,
+            event.contactType,
+            event.timingDetail,
+            event.phase,
+            obj.structure || 'generic'
+        ].join('|');
+    }
+
+    // Normalize opening ignoring player names for structural freshness
+    normalizeOpening(text, event) {
+        let norm = text;
+        if (event) {
+            if (event.batterName) norm = norm.replace(new RegExp(event.batterName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), 'BATTER');
+            if (event.bowlerName) norm = norm.replace(new RegExp(event.bowlerName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), 'BOWLER');
+        }
+        return norm.split(/\s+/).slice(0, 3).join(' ').toLowerCase();
+    }
+
+    // Score a candidate: higher = better pick. Combine detail priority + freshness + structure diversity.
+    scoreCandidate(text, structure, detail, speaker, event) {
+        let score = 0;
+
+        // Detail richness bonus: the user wants detail-rich lines to appear more often
+        if (detail === 'high') score += 4;
+        else if (detail === 'medium') score += 2;
+        else score += 0;
+
+        // Freshness: penalize stale candidates
+        const sanitized = this.sanitize(text).trim().toLowerCase();
+        if (this.recentExactTexts.includes(sanitized)) score -= 10;
+
+        const sig = event ? this.getSemanticSignatureFromEvent(text, event, { speaker, structure }) : sanitized;
+        if (this.recentSemanticSigs.includes(sig)) score -= 8;
+
+        const opening = this.normalizeOpening(text, event);
+        if (this.recentOpenings.includes(opening)) score -= 5;
+
+        // Per-speaker structure diversity
+        const speakerStructures = this.recentStructures[speaker] || [];
+        if (speakerStructures.includes(structure)) score -= 6;
+
+        // Small random jitter to prevent deterministic ordering
+        score += Math.random() * 1.5;
+
+        return { score, sig, sanitized, opening, structure };
+    }
+
+    dedupeAndFreshenObjects(lineObjects) {
+        const out = [];
+
+        for (const obj of lineObjects) {
+            if (!obj) continue;
+
+            const options = obj.textOptions ? obj.textOptions : (obj.text ? [obj.text] : []);
+            const structures = obj.structureOptions || [];
+            const details = obj.detailOptions || [];
+            const event = obj._event || null;
+            const speaker = obj.speaker || 'main';
+
+            // Score all candidates and pick the best
+            let best = null;
+            for (let i = 0; i < options.length; i++) {
+                const text = options[i];
+                const structure = structures[i] || 'generic';
+                const detail = details[i] || 'medium';
+                const result = this.scoreCandidate(text, structure, detail, speaker, event);
+                if (result.score <= -5) continue; // Hard reject very stale candidates
+                if (!best || result.score > best.score) {
+                    best = { ...result, text, detail };
+                }
+            }
+
+            // If all scored too low, fall back to first option
+            if (!best && options.length > 0) {
+                const text = options[0];
+                const sanitized = this.sanitize(text).trim().toLowerCase();
+                best = {
+                    text,
+                    score: -999,
+                    sig: sanitized,
+                    sanitized,
+                    opening: this.normalizeOpening(text, event),
+                    structure: structures[0] || 'generic',
+                    detail: details[0] || 'medium'
+                };
+            }
+
+            if (best) {
+                this.rememberSig(best.sig);
+                this.rememberText(best.sanitized);
+                // Track opening words (name-normalized)
+                this.recentOpenings.unshift(best.opening);
+                if (this.recentOpenings.length > this.maxRecentOpenings) this.recentOpenings.pop();
+                // Track per-speaker structure family
+                const speakerKey = speaker;
+                if (!this.recentStructures[speakerKey]) this.recentStructures[speakerKey] = [];
+                this.recentStructures[speakerKey].unshift(best.structure);
+                if (this.recentStructures[speakerKey].length > this.maxRecentStructures) this.recentStructures[speakerKey].pop();
+
+                out.push({ speaker, energy: obj.energy, text: this.sanitize(best.text) });
+            }
         }
 
-        if (phase === 'middle') {
-            return this.pick([
-                `The middle overs are a test of tempo, patience, and rotation.`,
-                `This is where matches are often shaped quietly rather than loudly.`,
-                `Middle-over cricket is about control as much as aggression.`,
-                `This phase rewards teams that think clearly between moments.`,
-                `You often win the final overs by how you manage the middle ones.`
-            ]);
+        if (out.length === 0 && lineObjects.length > 0) {
+             out.push({ speaker: 'main', energy: 'low', text: this.sanitize('That is the result of the delivery.')});
         }
 
-        if (phase === 'death') {
-            return this.pick([
-                `We are in the death overs now, where execution lives on a knife-edge.`,
-                `This is the brutal endgame of the innings.`,
-                `Every ball in the death phase carries oversized consequences.`,
-                `The death overs punish mistakes faster than any other phase.`,
-                `Nerve, accuracy, and decision-making are everything right now.`
-            ]);
-        }
-
-        return null;
+        return out;
     }
 }
 
